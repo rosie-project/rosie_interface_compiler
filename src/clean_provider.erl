@@ -41,7 +41,7 @@ do(State) ->
         OutDir = filename:join(rebar_app_info:dir(AppInfo), "src"),
         SearchDir = filename:join([rebar_app_info:dir(AppInfo), ?GEN_CODE_DIR]),
         FoundFiles = rebar_utils:find_files(SearchDir, ".*\\.erl\$"),
-        rebar_utils:remove_from_code_paths(FoundFiles)
+        [rebar_api:info("ROSIE: should remove ~s", [OutFile]) || OutFile <- FoundFiles]
      end || AppInfo <- Apps],
 
     {ok, State}.
