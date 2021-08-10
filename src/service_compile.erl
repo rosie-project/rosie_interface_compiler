@@ -27,7 +27,7 @@ file(Filename) ->
     {ok,InterfaceName++".erl", Code}.
 
 gen_interface(Filename,Scanner,Parser) -> 
-    {ok,Bin} = file:read_file("demos/shared_interfaces/srv/"++Filename),
+    {ok,Bin} = file:read_file(Filename),
     %io:format(Bin),
     % checking the work of the scanner
     case Scanner:string(binary_to_list(Bin)) of
@@ -44,7 +44,7 @@ gen_interface(Filename,Scanner,Parser) ->
 
 
 generate_interface(Filename,{Request,Reply}) ->
-    [Name,"srv"] = string:split(Filename,"."),
+    Name = filename:basename(Filename,".srv"),
     InterfaceName = file_name_to_interface_name(Name),
     RequestVarNames = lists:map(fun({{type,T},{name,N}}) -> N++"," end, Request),
     ReqInput = string:to_upper(string:trim(RequestVarNames,trailing,",")),
