@@ -1,4 +1,4 @@
--module(interface_compiler).
+-module(root_compiler).
 
 -export([init/1, do/1, format_error/1]).
 
@@ -53,7 +53,11 @@ format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
 srv_compile(_Opts, Source, OutDir) ->
-    io:format("Compiler called for: ~p\n",[Source]).
+    rebar_api:info("ROSIE: called for: ~p\n",[Source]),
+    {ok, Filename, Code} = service_compile:file(Source),
+    OutFile = filename:join([OutDir, Filename]),
+    rebar_api:info("ROSIE: writing out ~s", [OutFile]),
+    file:write_file(OutFile, Code).
     % {ok, Binary} = file:read_file(Source),
     % OutFile = filename:join([OutDir, "priv", filename:basename(Source)]),
     % filelib:ensure_dir(OutFile),
