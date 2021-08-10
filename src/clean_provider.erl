@@ -40,7 +40,7 @@ do(State) ->
         Opts = rebar_app_info:opts(AppInfo),
         SearchDir = filename:join([rebar_app_info:dir(AppInfo), "src", ?GEN_CODE_DIR]),
         FoundFiles = rebar_utils:find_files(SearchDir, ".*\\.erl\$"),
-        [rebar_api:info("ROSIE: should remove ~s", [OutFile]) || OutFile <- FoundFiles]
+        [remove_file(File) || File <- FoundFiles]
      end || AppInfo <- Apps],
 
     {ok, State}.
@@ -49,3 +49,7 @@ do(State) ->
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
+
+remove_file(Filename) ->
+        rebar_api:info("ROSIE: deleting ~s", [Filename]),
+        file:delete(Filename).
