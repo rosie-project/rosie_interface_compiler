@@ -55,7 +55,7 @@ format_error(Reason) ->
 srv_compile(_Opts, Source, OutDir) ->
     rebar_api:info("ROSIE: called for: ~p\n",[Source]),
     {ok, Filename, Code} = service_compile:file(Source),
-    OutFile = filename:join([OutDir, "src", Filename]),
+    OutFile = filename:join([OutDir, Filename]),
     rebar_api:info("ROSIE: writing out ~s", [OutFile]),
     file:write_file(OutFile, Code).
     % {ok, Binary} = file:read_file(Source),
