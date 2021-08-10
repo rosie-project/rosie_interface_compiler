@@ -52,10 +52,14 @@ do(State) ->
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
+
+-define(GEN_CODE_DIR, "_generated").
+
 srv_compile(_Opts, Source, OutDir) ->
     rebar_api:info("ROSIE: called for: ~p\n",[Source]),
     {ok, Filename, Code} = service_compile:file(Source),
-    OutFile = filename:join([OutDir, Filename]),
+    OutFile = filename:join([OutDir, ?GEN_CODE_DIR, Filename]),
+    filelib:ensure_dir(OutFile),
     rebar_api:info("ROSIE: writing out ~s", [OutFile]),
     file:write_file(OutFile, Code).
     % {ok, Binary} = file:read_file(Source),
