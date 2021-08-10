@@ -7,7 +7,7 @@
 -define(NAMESPACE, rosie).
 -define(DEPS, [{default, app_discovery}]).
 
--include_lib("compiler_macros.hrl").
+-include_lib("include/compiler_macros.hrl").
 
 %% ===================================================================
 %% Public API
