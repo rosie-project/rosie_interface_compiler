@@ -2,7 +2,8 @@
 
 -export([init/1, do/1, format_error/1]).
 
--define(PROVIDER, compile).
+-define(COMPILE_PROVIDER, compile).
+-define(CLEAN_PROVIDER, clean).
 -define(NAMESPACE, rosie).
 -define(DEPS, [{default, app_discovery}]).
 
@@ -12,17 +13,30 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider = providers:create([
-            {name, ?PROVIDER},
+            {name, ?COMPILE_PROVIDER},
             {namespace, ?NAMESPACE},
             {module, ?MODULE},
             {bare, true},
             {deps, ?DEPS},
             {example, "rebar3 rosie compile"},
             {opts, []},
-            {short_desc, "Erlang Compiler for ros messages"},
+            {short_desc, "Compile ros2 messages into erl modules."},
             {desc, "Compiler plugin to automate compilation of .msg .srv and .action files for ROSIE"}
     ]),
-    {ok, rebar_state:add_provider(State, Provider)}.
+    State1 = rebar_state:add_provider(State, Provider),
+    Provider2 = providers:create([
+        {name, ?CLEAN_PROVIDER},
+        {namespace, ?NAMESPACE},
+        {module, ?MODULE},
+        {bare, true},
+        {deps, ?DEPS},
+        {example, "rebar3 rosie clean"},
+        {opts, []},
+        {short_desc, "Clean up generated modules"},
+        {desc, ""}
+    ]),
+    State2 = rebar_state:add_provider(State1, Provider2),
+    {ok, State2}.
 
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
