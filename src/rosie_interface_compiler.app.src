@@ -1,0 +1,13 @@
+{application, rosie_interface_compiler,
+ [{description, "Compiler plugin to automate compilation of .msg .srv and .action files for ROSIE"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
