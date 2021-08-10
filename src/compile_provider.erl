@@ -30,7 +30,6 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
-    io:format("~p\n",[State]),
     Apps = case rebar_state:current_app(State) of
                   undefined ->
                       rebar_state:project_apps(State);
