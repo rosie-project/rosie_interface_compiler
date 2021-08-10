@@ -1,11 +1,13 @@
--module(root_compiler).
+-module(compile_provider).
 
 -export([init/1, do/1, format_error/1]).
 
--define(COMPILE_PROVIDER, compile).
--define(CLEAN_PROVIDER, clean).
+-define(PROVIDER, compile).
 -define(NAMESPACE, rosie).
 -define(DEPS, [{default, app_discovery}]).
+
+
+-include_lib("compiler_macros.hrl").
 
 %% ===================================================================
 %% Public API
@@ -13,7 +15,7 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider = providers:create([
-            {name, ?COMPILE_PROVIDER},
+            {name, ?PROVIDER},
             {namespace, ?NAMESPACE},
             {module, ?MODULE},
             {bare, true},
@@ -23,20 +25,7 @@ init(State) ->
             {short_desc, "Compile ros2 messages into erl modules."},
             {desc, "Compiler plugin to automate compilation of .msg .srv and .action files for ROSIE"}
     ]),
-    State1 = rebar_state:add_provider(State, Provider),
-    Provider2 = providers:create([
-        {name, ?CLEAN_PROVIDER},
-        {namespace, ?NAMESPACE},
-        {module, ?MODULE},
-        {bare, true},
-        {deps, ?DEPS},
-        {example, "rebar3 rosie clean"},
-        {opts, []},
-        {short_desc, "Clean up generated modules"},
-        {desc, ""}
-    ]),
-    State2 = rebar_state:add_provider(State1, Provider2),
-    {ok, State2}.
+    {ok, rebar_state:add_provider(State, Provider)}.
 
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
@@ -50,7 +39,7 @@ do(State) ->
               end,
     [begin
          Opts = rebar_app_info:opts(AppInfo),
-         OutDir = filename:join(rebar_app_info:dir(AppInfo), "src"),
+         OutDir = filename:join([rebar_app_info:dir(AppInfo), "src", ?GEN_CODE_DIR]),
          SourceDir = filename:join(rebar_app_info:dir(AppInfo), "srv"),
          FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.srv\$"),
 
@@ -67,13 +56,10 @@ do(State) ->
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
-
--define(GEN_CODE_DIR, "_generated").
-
 srv_compile(_Opts, Source, OutDir) ->
     rebar_api:info("ROSIE: called for: ~p\n",[Source]),
     {ok, Filename, Code} = service_compile:file(Source),
-    OutFile = filename:join([OutDir, ?GEN_CODE_DIR, Filename]),
+    OutFile = filename:join([OutDir, Filename]),
     filelib:ensure_dir(OutFile),
     rebar_api:info("ROSIE: writing out ~s", [OutFile]),
     file:write_file(OutFile, Code).
