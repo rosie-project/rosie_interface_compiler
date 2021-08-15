@@ -27,8 +27,8 @@ gen_interface(PkgName,Filename,Scanner,Parser) ->
 generate_interface(PkgName,Filename,{Request,Reply}) ->
     Name = filename:basename(Filename,".srv"),
     InterfaceName = file_name_to_interface_name(Name),
-    {RequestInput,SerializerRequest,DeserializerRequest}  = produce_in_out(Request),
-    {ReplyInput,SerializerReply,DeserializerReply}  = produce_in_out(Reply),
+    {RequestInput,RequestOutput, SerializerRequest,DeserializerRequest}  = produce_in_out(Request),
+    {ReplyInput,ReplyOutput,SerializerReply,DeserializerReply}  = produce_in_out(Reply),
     % string of code as output
     {InterfaceName, 
 "-module("++InterfaceName++").
@@ -48,14 +48,14 @@ serialize_request(Client_ID,{"++RequestInput++"}) ->
 
 
 parse_reply(<<Client_ID:8/binary, 1:64/little,"++DeserializerReply++">>) ->
-        {Client_ID, "++ReplyInput++"}.
+        {Client_ID, {"++ReplyOutput++"}}.
 
 % SERVER        
 serialize_reply(Client_ID,"++ReplyInput++") -> 
         <<Client_ID:8/binary, 1:64/little, "++SerializerReply++">>.
 
 parse_request(<<Client_ID:8/binary, 1:64/little,"++DeserializerRequest++">>) ->        
-        {Client_ID,{"++RequestInput++"}}.
+        {Client_ID,{"++RequestOutput++"}}.
 "}.
 
 file_name_to_interface_name(Name) -> 
@@ -72,6 +72,11 @@ produce_in_out(DataList) ->
     VarNames = lists:map(fun({_,{name,N}}) -> N++"," end, DataList),
     VarTypes = lists:map(fun({{type,T},_}) -> T end, DataList),
     InputCode = string:to_upper(string:trim(VarNames,trailing,",")),
+    OutputCode = string:trim(
+                        lists:map(fun({T,VarName}) -> " "++type_code(output,VarName,T)++"," end, 
+                            lists:zip(VarTypes, 
+                                string:split(InputCode, ",",all)))
+                    ,trailing, ","),
     SerializerCode = string:trim(
                             lists:map(fun({T,VarName}) -> " "++type_code(serialize,VarName,T)++"," end, 
                                 lists:zip(VarTypes, 
@@ -82,12 +87,15 @@ produce_in_out(DataList) ->
                                 lists:zip(VarTypes, 
                                     string:split(InputCode, ",",all)))
                         ,trailing, ","),
-    {InputCode,SerializerCode,DeserializerCode}.
+    {InputCode,OutputCode,SerializerCode,DeserializerCode}.
 
+type_code(output,VarName,int64) -> VarName;
 type_code(_,VarName,int64) -> VarName++":64/signed-little";
+type_code(output,VarName,float32) -> VarName;
 type_code(_,VarName,float32) -> VarName++":32/float-little";
 type_code(serialize,VarName,string) -> "(length("++VarName++")+1):32/little,(list_to_binary("++VarName++"))/binary,0:8";
-type_code(deserialize,VarName,string) -> "L:32/little, "++VarName++":(L-1)/binary,_/binary".
+type_code(deserialize,VarName,string) -> "L:32/little, "++VarName++":(L-1)/binary,_/binary";
+type_code(output,VarName,string) -> "binary_to_list("++VarName++")".
 
 print_parsed_info({Request,Reply}) ->
     io:format("Request is : ~p\nReply is: ~p\n",[Request,Reply]).
