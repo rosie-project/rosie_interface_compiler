@@ -37,8 +37,8 @@ do(State) ->
                       [AppInfo]
               end,
     [begin
-        compile_services(rebar_app_info:opts(AppInfo),rebar_app_info:name(AppInfo),rebar_app_info:dir(AppInfo)),
-        compile_messages(rebar_app_info:opts(AppInfo),rebar_app_info:name(AppInfo),rebar_app_info:dir(AppInfo))
+        compile_services(rebar_app_info:opts(AppInfo),binary_to_list(rebar_app_info:name(AppInfo)),rebar_app_info:dir(AppInfo)),
+        compile_messages(rebar_app_info:opts(AppInfo),binary_to_list(rebar_app_info:name(AppInfo)),rebar_app_info:dir(AppInfo))
      end || AppInfo <- Apps],
 
     {ok, State}.
