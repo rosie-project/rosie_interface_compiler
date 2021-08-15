@@ -87,7 +87,7 @@ produce_in_out(DataList) ->
 type_code(_,VarName,int64) -> VarName++":64/signed-little";
 type_code(_,VarName,float32) -> VarName++":32/float-little";
 type_code(serialize,VarName,string) -> "(length("++VarName++")+1):32/little,(list_to_binary("++VarName++"))/binary,0:8";
-type_code(deserialize,VarName,string) -> "L:32/little, "++VarName++":(L-1)/binary,0:8".
+type_code(deserialize,VarName,string) -> "L:32/little, "++VarName++":(L-1)/binary,_/binary".
 
 print_parsed_info({Request,Reply}) ->
     io:format("Request is : ~p\nReply is: ~p\n",[Request,Reply]).
