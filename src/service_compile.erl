@@ -1,14 +1,13 @@
 -module(service_compile).
 
--export([file/1]).
+-export([file/2]).
 
-
-file(Filename) ->     
-    {InterfaceName,Code} = gen_interface(Filename,service_scanner,service_parser),
+file(PkgName,Filename) ->     
+    {InterfaceName,Code} = gen_interface(PkgName,Filename,service_scanner,service_parser),
 
     {ok,InterfaceName++".erl", Code}.
 
-gen_interface(Filename,Scanner,Parser) -> 
+gen_interface(PkgName,Filename,Scanner,Parser) -> 
     {ok,Bin} = file:read_file(Filename),
     %io:format(Bin),
     % checking the work of the scanner
@@ -18,14 +17,14 @@ gen_interface(Filename,Scanner,Parser) ->
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
                 {ok,Res} ->% print_parsed_info(Res),
-                     generate_interface(Filename,Res);
+                     generate_interface(PkgName,Filename,Res);
                 Else -> io:format("Parser failed: ~p\n",[Else])
             end;
         ErrorInfo -> io:format("Scanner failed: ~p\n",[ErrorInfo])
     end.
 
 
-generate_interface(Filename,{Request,Reply}) ->
+generate_interface(PkgName,Filename,{Request,Reply}) ->
     Name = filename:basename(Filename,".srv"),
     InterfaceName = file_name_to_interface_name(Name),
     {RequestInput,SerializerRequest,DeserializerRequest}  = produce_in_out(Request),
@@ -41,7 +40,7 @@ get_name() ->
         \""++InterfaceName++"\".
 
 get_type() ->
-        \"example_interfaces::srv::dds_::"++Name++"_"++"\".
+        \""++PkgName++"::srv::dds_::"++Name++"_"++"\".
 
 % CLIENT
 serialize_request(Client_ID,{"++RequestInput++"}) -> 

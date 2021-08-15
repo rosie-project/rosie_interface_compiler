@@ -37,8 +37,8 @@ do(State) ->
                       [AppInfo]
               end,
     [begin
-        compile_services(rebar_app_info:opts(AppInfo),rebar_app_info:dir(AppInfo)),
-        compile_messages(rebar_app_info:opts(AppInfo),rebar_app_info:dir(AppInfo))
+        compile_services(rebar_app_info:opts(AppInfo),rebar_app_info:name(AppInfo),rebar_app_info:dir(AppInfo)),
+        compile_messages(rebar_app_info:opts(AppInfo),rebar_app_info:name(AppInfo),rebar_app_info:dir(AppInfo))
      end || AppInfo <- Apps],
 
     {ok, State}.
@@ -47,32 +47,32 @@ do(State) ->
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
-compile_services(Opts, AppDir) -> 
+compile_services(Opts, PkgName, AppDir) -> 
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "srv"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.srv\$"),
-    CompileFun = fun(Source, Opts1) -> srv_compile(Opts1, Source, OutDir) end,
+    CompileFun = fun(Source, Opts1) -> srv_compile(Opts1, PkgName, Source, OutDir) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
-compile_messages(Opts, AppDir) -> 
+compile_messages(Opts, PkgName, AppDir) -> 
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "msg"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.msg\$"),
-    CompileFun = fun(Source, Opts1) -> msg_compile(Opts1, Source, OutDir) end,
+    CompileFun = fun(Source, Opts1) -> msg_compile(Opts1, PkgName, Source, OutDir) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
-compile_messages(AppDir) -> ok.
+compile_messages( PkgName, AppDir) -> ok.
 
-srv_compile(_Opts, Source, OutDir) ->
+srv_compile(_Opts, PkgName, Source, OutDir) ->
     rebar_api:info("ROSIE: called for: ~p\n",[Source]),
-    {ok, Filename, Code} = service_compile:file(Source),
+    {ok, Filename, Code} = service_compile:file(PkgName,Source),
     OutFile = filename:join([OutDir, Filename]),
     filelib:ensure_dir(OutFile),
     rebar_api:info("ROSIE: writing out ~s", [OutFile]),
     file:write_file(OutFile, Code).
 
 
-msg_compile(_Opts, Source, OutDir) ->
+msg_compile(_Opts, PkgName,Source, OutDir) ->
     rebar_api:info("ROSIE: called for: ~p",[Source]), ok.
     % {ok, Filename, Code} = service_compile:file(Source),
     % OutFile = filename:join([OutDir, Filename]),
@@ -92,7 +92,7 @@ compile_msg_test() ->
 
 compile_srv_test() -> 
     Files = rebar_utils:find_files("test_interfaces/srv",".*\\.srv\$"),
-    [srv_compile([], F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
+    [srv_compile([], "test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
     [check_compilation_result(R) || R <- [compile:file(M,[binary]) || M <- ModuleFiles]].
