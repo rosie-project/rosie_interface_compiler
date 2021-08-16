@@ -28,8 +28,8 @@ generate_interface(PkgName,Filename,{Items}) ->
     InterfaceName = file_name_to_interface_name(Name),
     {Input,Output, Serializer,Deserializer}  = produce_in_out(Items),
     % string of code as output
-    {InterfaceName, 
-"-module("++InterfaceName++").
+    {InterfaceName++"_msg", 
+"-module("++InterfaceName++"_msg"++").
 
 -export([get_type/0, serialize/1, parse/1]).
 
