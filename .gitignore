@@ -1,4 +1,8 @@
 .rebar3
+rebar3.crashdump
+.vscode
+.metals
+svn_ignore.txt
 _*
 .eunit
 *.o
