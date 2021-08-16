@@ -1,9 +1,9 @@
--module(service_compile).
+-module(message_compile).
 
 -export([file/2]).
 
 file(PkgName,Filename) ->     
-    {InterfaceName,Code} = gen_interface(PkgName,Filename,scanner,service_parser),
+    {InterfaceName,Code} = gen_interface(PkgName,Filename,scanner,message_parser),
     {ok,InterfaceName++".erl", Code}.
 
 gen_interface(PkgName,Filename,Scanner,Parser) -> 
@@ -23,38 +23,25 @@ gen_interface(PkgName,Filename,Scanner,Parser) ->
     end.
 
 
-generate_interface(PkgName,Filename,{Request,Reply}) ->
-    Name = filename:basename(Filename,".srv"),
+generate_interface(PkgName,Filename,{Items}) ->
+    Name = filename:basename(Filename,".msg"),
     InterfaceName = file_name_to_interface_name(Name),
-    {RequestInput,RequestOutput, SerializerRequest,DeserializerRequest}  = produce_in_out(Request),
-    {ReplyInput,ReplyOutput,SerializerReply,DeserializerReply}  = produce_in_out(Reply),
+    {Input,Output, Serializer,Deserializer}  = produce_in_out(Items),
     % string of code as output
     {InterfaceName, 
 "-module("++InterfaceName++").
 
--export([get_name/0, get_type/0, serialize_request/2, serialize_reply/2, parse_request/1, parse_reply/1]).
-
-% GENERAL
-get_name() ->
-        \""++InterfaceName++"\".
+-export([get_type/0, serialize/1, parse/1]).
 
 get_type() ->
-        \""++PkgName++"::srv::dds_::"++Name++"_"++"\".
+        \""++PkgName++"::msg::dds_::"++Name++"_"++"\".
 
-% CLIENT
-serialize_request(Client_ID,{"++RequestInput++"}) -> 
-        <<Client_ID:8/binary, 1:64/little,"++SerializerRequest++">>.
+serialize({"++Input++"}) -> 
+        <<"++Serializer++">>.
 
+parse(<<"++Deserializer++">>) ->
+        {"++Output++"}.
 
-parse_reply(<<Client_ID:8/binary, 1:64/little,"++DeserializerReply++">>) ->
-        {Client_ID, {"++ReplyOutput++"}}.
-
-% SERVER        
-serialize_reply(Client_ID,"++ReplyInput++") -> 
-        <<Client_ID:8/binary, 1:64/little, "++SerializerReply++">>.
-
-parse_request(<<Client_ID:8/binary, 1:64/little,"++DeserializerRequest++">>) ->        
-        {Client_ID,{"++RequestOutput++"}}.
 "}.
 
 file_name_to_interface_name(Name) -> 
@@ -95,6 +82,3 @@ type_code(_,VarName,float32) -> VarName++":32/float-little";
 type_code(serialize,VarName,string) -> "(length("++VarName++")+1):32/little,(list_to_binary("++VarName++"))/binary,0:8";
 type_code(deserialize,VarName,string) -> "L:32/little, "++VarName++":(L-1)/binary,_/binary";
 type_code(output,VarName,string) -> "binary_to_list("++VarName++")".
-
-print_parsed_info({Request,Reply}) ->
-    io:format("Request is : ~p\nReply is: ~p\n",[Request,Reply]).

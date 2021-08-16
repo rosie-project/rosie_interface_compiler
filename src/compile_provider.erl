@@ -37,8 +37,11 @@ do(State) ->
                       [AppInfo]
               end,
     [begin
-        compile_services(rebar_app_info:opts(AppInfo),binary_to_list(rebar_app_info:name(AppInfo)),rebar_app_info:dir(AppInfo)),
-        compile_messages(rebar_app_info:opts(AppInfo),binary_to_list(rebar_app_info:name(AppInfo)),rebar_app_info:dir(AppInfo))
+        Opts = rebar_app_info:opts(AppInfo),
+        AppName = binary_to_list(rebar_app_info:name(AppInfo)),
+        AppDir = rebar_app_info:dir(AppInfo),
+        compile_services(Opts,AppName,AppDir),
+        compile_messages(Opts,AppName,AppDir)
      end || AppInfo <- Apps],
 
     {ok, State}.
@@ -71,14 +74,13 @@ srv_compile(_Opts, PkgName, Source, OutDir) ->
     rebar_api:info("ROSIE: writing out ~s", [OutFile]),
     file:write_file(OutFile, Code).
 
-
 msg_compile(_Opts, PkgName,Source, OutDir) ->
-    rebar_api:info("ROSIE: called for: ~p",[Source]), ok.
-    % {ok, Filename, Code} = service_compile:file(Source),
-    % OutFile = filename:join([OutDir, Filename]),
-    % filelib:ensure_dir(OutFile),
-    % rebar_api:info("ROSIE: writing out ~s", [OutFile]),
-    % file:write_file(OutFile, Code).
+    rebar_api:info("ROSIE: called for: ~p",[Source]),
+    {ok, Filename, Code} = message_compile:file(PkgName,Source),
+    OutFile = filename:join([OutDir, Filename]),
+    filelib:ensure_dir(OutFile),
+    rebar_api:info("ROSIE: writing out ~s", [OutFile]),
+    file:write_file(OutFile, Code).
 
 
 
@@ -87,8 +89,10 @@ msg_compile(_Opts, PkgName,Source, OutDir) ->
 
 compile_msg_test() -> 
     Files = rebar_utils:find_files("test_interfaces/msg",".*\\.msg\$"),
-    io:format("~p\n",[Files]),
-    ?assert( 1 == 1).
+    [msg_compile([], "test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
+    ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*\\.erl\$"),
+    [compile:file(M,[binary]) || M <- ModuleFiles],
+    [check_compilation_result(R) || R <- [compile:file(M,[binary]) || M <- ModuleFiles]].
 
 compile_srv_test() -> 
     Files = rebar_utils:find_files("test_interfaces/srv",".*\\.srv\$"),
