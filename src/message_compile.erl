@@ -79,6 +79,8 @@ type_code(output,VarName,int64) -> VarName;
 type_code(_,VarName,int64) -> VarName++":64/signed-little";
 type_code(output,VarName,float32) -> VarName;
 type_code(_,VarName,float32) -> VarName++":32/float-little";
+type_code(output,VarName,float64) -> VarName;
+type_code(_,VarName,float64) -> VarName++":64/float-little";
 type_code(serialize,VarName,string) -> "(length("++VarName++")+1):32/little,(list_to_binary("++VarName++"))/binary,0:8";
 type_code(deserialize,VarName,string) -> "L:32/little, "++VarName++":(L-1)/binary,_/binary";
 type_code(output,VarName,string) -> "binary_to_list("++VarName++")".
