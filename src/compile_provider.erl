@@ -76,11 +76,15 @@ srv_compile(_Opts, PkgName, Source, OutDir) ->
 
 msg_compile(_Opts, PkgName,Source, OutDir) ->
     rebar_api:info("ROSIE: called for: ~p",[Source]),
-    {ok, Filename, Code} = message_compile:file(PkgName,Source),
-    OutFile = filename:join([OutDir, Filename]),
-    filelib:ensure_dir(OutFile),
-    rebar_api:info("ROSIE: writing out ~s", [OutFile]),
-    file:write_file(OutFile, Code).
+    {ok, Filename, Code, Header} = message_compile:file(PkgName,Source),
+    OutModule = filename:join([OutDir, Filename++".erl"]),
+    filelib:ensure_dir(OutModule),
+    rebar_api:info("ROSIE: writing out ~s", [OutModule]),
+    file:write_file(OutModule, Code),
+    OutHeader= filename:join([OutDir, Filename++".hrl"]),
+    filelib:ensure_dir(OutHeader),
+    rebar_api:info("ROSIE: writing out ~s", [OutHeader]),
+    file:write_file(OutHeader, Header).
 
 
 
