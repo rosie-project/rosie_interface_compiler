@@ -54,53 +54,49 @@ compile_services(Opts, PkgName, AppDir) ->
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "srv"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.srv\$"),
-    CompileFun = fun(Source, Opts1) -> srv_compile(Opts1, PkgName, Source, OutDir) end,
+    CompileFun = fun(Source, Opts1) -> compile(PkgName, Source, OutDir, service_compile) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
 compile_messages(Opts, PkgName, AppDir) -> 
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "msg"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.msg\$"),
-    CompileFun = fun(Source, Opts1) -> msg_compile(Opts1, PkgName, Source, OutDir) end,
+    CompileFun = fun(Source, Opts1) -> compile(PkgName, Source, OutDir, message_compile) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
-compile_messages( PkgName, AppDir) -> ok.
 
-srv_compile(_Opts, PkgName, Source, OutDir) ->
-    rebar_api:info("ROSIE: called for: ~p\n",[Source]),
-    {ok, Filename, Code} = service_compile:file(PkgName,Source),
-    OutFile = filename:join([OutDir, Filename]),
+compile(PkgName, Source, OutDir, CompilerModule) ->
+    % rebar_api:info("ROSIE: called for: ~p\n",[Source]),
+    {ok, Filename, Code, Header} = CompilerModule:file(PkgName,Source),
+    % Module
+    write_file(OutDir,Filename++".erl",Code),
+    % HEADER
+    write_file(OutDir,Filename++".hrl",Header).
+
+write_file(OutDir,Filename,Text) ->
+    OutFile= filename:join([OutDir, Filename]),
     filelib:ensure_dir(OutFile),
     rebar_api:info("ROSIE: writing out ~s", [OutFile]),
-    file:write_file(OutFile, Code).
-
-msg_compile(_Opts, PkgName,Source, OutDir) ->
-    rebar_api:info("ROSIE: called for: ~p",[Source]),
-    {ok, Filename, Code, Header} = message_compile:file(PkgName,Source),
-    OutModule = filename:join([OutDir, Filename++".erl"]),
-    filelib:ensure_dir(OutModule),
-    rebar_api:info("ROSIE: writing out ~s", [OutModule]),
-    file:write_file(OutModule, Code),
-    OutHeader= filename:join([OutDir, Filename++".hrl"]),
-    filelib:ensure_dir(OutHeader),
-    rebar_api:info("ROSIE: writing out ~s", [OutHeader]),
-    file:write_file(OutHeader, Header).
-
+    file:write_file(OutFile, Text).
 
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
+clean_before_test() ->
+    FoundFiles = rebar_utils:find_files("test_interfaces/"++?GEN_CODE_DIR, ".*\\.[he]rl\$"),
+    [file:delete(File) || File <- FoundFiles].
+
 compile_msg_test() -> 
     Files = rebar_utils:find_files("test_interfaces/msg",".*\\.msg\$"),
-    [msg_compile([], "test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
+    [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR,message_compile) || F <- Files],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
     [check_compilation_result(R) || R <- [compile:file(M,[binary]) || M <- ModuleFiles]].
 
 compile_srv_test() -> 
     Files = rebar_utils:find_files("test_interfaces/srv",".*\\.srv\$"),
-    [srv_compile([], "test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
+    [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR,service_compile) || F <- Files],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
     [check_compilation_result(R) || R <- [compile:file(M,[binary]) || M <- ModuleFiles]].
@@ -108,4 +104,7 @@ compile_srv_test() ->
 check_compilation_result({ok,_,_}) -> ok;
 check_compilation_result(error) -> io:format("ERROR compiling...\n"), ?assert(1==2);
 check_compilation_result({error,Errors,_}) -> io:format("~p\n",[Errors]), ?assert(1==2).
+
+
+
 -endif.

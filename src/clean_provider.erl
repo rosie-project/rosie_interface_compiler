@@ -39,7 +39,7 @@ do(State) ->
     [begin
         Opts = rebar_app_info:opts(AppInfo),
         SearchDir = filename:join([rebar_app_info:dir(AppInfo), "src", ?GEN_CODE_DIR]),
-        FoundFiles = rebar_utils:find_files(SearchDir, ".*\\.erl\$"),
+        FoundFiles = rebar_utils:find_files(SearchDir, ".*\\.[he]rl\$"),
         [remove_file(File) || File <- FoundFiles]
      end || AppInfo <- Apps],
 
