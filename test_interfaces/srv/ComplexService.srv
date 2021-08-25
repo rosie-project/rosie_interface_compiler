@@ -1,5 +1,5 @@
 float32 x
-Twist twist
-Vector3 position
+Twist[3] twist
+Vector3[] camera
 ---
 Vector3 new_pos

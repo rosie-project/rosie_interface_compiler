@@ -90,16 +90,16 @@ clean_before_test() ->
 compile_msg_test() -> 
     Files = rebar_utils:find_files("test_interfaces/msg",".*\\.msg\$"),
     [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR,message_compile) || F <- Files],
-    ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*\\.erl\$"),
+    ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*_msg\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
-    [check_compilation_result(R) || R <- [compile:file(M,[binary]) || M <- ModuleFiles]].
+    [check_compilation_result(R) || R <- [compile:file(M,[verbose,report_errors,report_warnings,binary]) || M <- ModuleFiles]].
 
 compile_srv_test() -> 
     Files = rebar_utils:find_files("test_interfaces/srv",".*\\.srv\$"),
     [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR,service_compile) || F <- Files],
-    ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*\\.erl\$"),
+    ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*_srv\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
-    [check_compilation_result(R) || R <- [compile:file(M,[binary]) || M <- ModuleFiles]].
+    [check_compilation_result(R) || R <- [compile:file(M,[verbose,report_errors,report_warnings,binary]) || M <- ModuleFiles]].
 
 check_compilation_result({ok,_,_}) -> ok;
 check_compilation_result(error) -> io:format("ERROR compiling...\n"), ?assert(1==2);
