@@ -10,7 +10,9 @@
         get_size_of/1,
         get_defalt_val_for/1,
         produce_record_def/1,
-        type_code/3
+        type_code/3,
+        parse_code/3,
+        items_contain_usertyped_arrays/1
 ]).
 
 
@@ -58,10 +60,11 @@ produce_in_out(DataList) ->
                                     lists:zip(VarTypes,InputVars))
                         ,","),
         DeserializerCode = string:join(
-                                lists:map(fun({T,InputVar}) -> " "++rosie_utils:type_code(deserialize,InputVar,T) end, 
-                                    lists:zip(VarTypes, InputVars))
-                        ,","),
+                                lists:map(fun({T,InputVar,Index}) -> rosie_utils:parse_code(InputVar,T,Index) end, 
+                                    lists:zip3(VarTypes, InputVars, lists:seq(1,length(DataList))))
+                        ,",\n\t"),
         {InputCode,OutputCode,SerializerCode,DeserializerCode}.
+
     
 
 get_bitsizes(Items) -> 
@@ -105,23 +108,19 @@ get_defalt_val_for(UserType) -> "#"++file_name_to_interface_name(UserType)++"{}"
 
 check(T) -> T /= char.
 
-%dinamic arrays, simple if composed of static length subtypes, if not, evaluation should be handled in a different way
-% parse(<< Undefined>>) ->
-%   {Array1, Other1} = vector3:parse_array(Undefined)
-%   {Array2, Other2} = vector3:parse_array(Other1)
-%   #dinamic_array_user_type{ vectors = Array1}.
+
 type_code(serialize,VarName,{T,any}) -> 
     "(length("++VarName++")):32/little, 
     (list_to_binary(lists:map(fun (E) -> <<"++type_code(serialize,"E",T) ++">> end,"++VarName++")))/binary";
 type_code(deserialize,VarName,{T,any}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true -> VarName++"_L:32/little, "++VarName++":("++VarName++"_L*"++get_size_of(T)++" div 8)/binary";
-        false -> "Not_implemented"
+        false -> VarName
     end;
 type_code(output,VarName,{T,any}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true -> "lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++VarName++"_L))";
-        false -> "not_implemented"
+        false -> VarName
     end;
 
 %static arrays, simple if elem type has fixed length, otherwise parsing needs to be delegated
@@ -130,12 +129,12 @@ type_code(serialize,VarName,{T,L}) ->
 type_code(deserialize,VarName,{T,L}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true -> VarName++":("++L++"*"++get_size_of(T)++" div 8)/binary";
-        false -> "Not_implemented"
+        false -> VarName
     end;
 type_code(output,VarName,{T,L}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true -> "lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++L++"))";
-        false -> "not_implemented"
+        false -> VarName
     end;
 
 type_code(output,VarName,char) -> VarName;
@@ -157,3 +156,40 @@ type_code(output,VarName,string) -> "binary_to_list("++VarName++")";
 type_code(serialize,VarName,USER_TYPE) -> "("++file_name_to_interface_name(USER_TYPE)++"_msg:serialize("++VarName++"))/binary";
 type_code(deserialize,VarName,USER_TYPE) -> VarName++":(?"++USER_TYPE++"_bitsize)";
 type_code(output,VarName,USER_TYPE) -> file_name_to_interface_name(USER_TYPE)++"_msg:parse("++VarName++")".
+
+
+
+
+parse_code(VarName,{string,any},Index) ->
+        "<<"++VarName++"_L:32/little, Str_"++integer_to_list(Index)++"/binary>> = Payload_"++integer_to_list(Index-1)++",\n\t"
+        ++"{"++VarName++", Payload_"++integer_to_list(Index)++"} = parse_n_times(string, "++VarName++"_L, Str_"++integer_to_list(Index)++")";
+parse_code(VarName,{string,L},Index) ->
+        "{"++VarName++", Payload_"++integer_to_list(Index)++"} = parse_n_times(string, L, Str_"++integer_to_list(Index)++")";
+
+parse_code(VarName,{T,any},Index) -> 
+    case lists:member(T, ?ROS2_PRIMITIVES) of
+        true -> "<<"++type_code(deserialize,VarName,{T,any})++", Payload_"++integer_to_list(Index)++"/binary>> = Payload_"++integer_to_list(Index-1);
+        false -> "<<"++VarName++"_L:32/little, Array_"++integer_to_list(Index)++"/binary>> = Payload_"++integer_to_list(Index-1)++",\n\t"
+                ++"{"++VarName++", Payload_"++integer_to_list(Index)++"} = parse_n_times("++file_name_to_interface_name(T)++"_msg, "++VarName++"_L, Array_"++integer_to_list(Index)++")"
+    end;
+parse_code(VarName,{T,L},Index) -> 
+    case lists:member(T, ?ROS2_PRIMITIVES) of
+        true -> "<<"++type_code(deserialize,VarName,{T,L})++", Payload_"++integer_to_list(Index)++"/binary>> = Payload_"++integer_to_list(Index-1);
+        false -> "{"++VarName++", Payload_"++integer_to_list(Index)++"} = parse_n_times("++file_name_to_interface_name(T)++"_msg, "++L++", Payload_"++integer_to_list(Index-1)++")"
+    end;
+parse_code(VarName,T,Index) -> 
+    case lists:member(T, ?ROS2_PRIMITIVES) of
+        true -> "<<"++type_code(deserialize,VarName,T)++",Payload_"++integer_to_list(Index)++"/binary>> =  Payload_"++integer_to_list(Index-1);
+        false -> "{"++VarName++", Payload_"++integer_to_list(Index)++"} = "++file_name_to_interface_name(T)++"_msg:parse(Payload_"++integer_to_list(Index-1)++")"
+    end.
+
+
+items_contain_usertyped_arrays(Items) ->
+    lists:any(fun ({{{type,T},{array,_}},_}) -> 
+                    case not lists:member(T,?ROS2_STATIC_PRIMITIVES) of
+                        true -> true;
+                        false -> false
+                    end;
+                (_) -> 
+                    false 
+                end, Items).

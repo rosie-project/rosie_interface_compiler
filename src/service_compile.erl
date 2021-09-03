@@ -2,6 +2,8 @@
 
 -export([file/2]).
 
+-include_lib("include/compiler_macros.hrl").
+
 file(PkgName,Filename) ->     
     {InterfaceName, Code, Header} = gen_interface(PkgName,Filename,scanner,service_parser),
     {ok,InterfaceName, Code, Header}.
@@ -11,7 +13,7 @@ gen_interface(PkgName,Filename,Scanner,Parser) ->
     %io:format(Bin),
     % checking the work of the scanner
     case Scanner:string(binary_to_list(Bin)) of
-        {ok,Tokens,EndLine} -> 
+        {ok,Tokens,_} -> 
             %io:format("~p\n",[Tokens]),
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
@@ -51,30 +53,37 @@ get_name() ->
 
 get_type() ->
         \""++PkgName++"::srv::dds_::"++Name++"_"++"\".
-
+"++case rosie_utils:items_contain_usertyped_arrays(Request++Reply) of
+    true -> ?PARSE_N_TIMES_CODE; %paste extra code
+    false -> "" 
+    end
+++
+"
 % CLIENT
 serialize_request(Client_ID,#"++InterfaceName++"_rq{"++RequestInput++"}) -> 
         <<Client_ID:8/binary, 1:64/little,"++SerializerRequest++">>.
 
-
-parse_reply(<<Client_ID:8/binary, 1:64/little,"++DeserializerReply++">>) ->
-        {Client_ID, #"++InterfaceName++"_rp{"++ReplyOutput++"}}.
+parse_reply(<<Client_ID:8/binary, 1:64/little, Payload_0/binary>>) ->
+        "++DeserializerReply++",
+        { Client_ID, #"++InterfaceName++"_rp{"++ReplyOutput++"} }.
 
 % SERVER        
 serialize_reply(Client_ID,#"++InterfaceName++"_rp{"++ReplyInput++"}) -> 
         <<Client_ID:8/binary, 1:64/little, "++SerializerReply++">>.
 
-parse_request(<<Client_ID:8/binary, 1:64/little,"++DeserializerRequest++">>) ->        
-        {Client_ID,#"++InterfaceName++"_rq{"++RequestOutput++"}}.
+parse_request(<<Client_ID:8/binary, 1:64/little, Payload_0/binary>>) ->
+        "++DeserializerRequest++",
+        { Client_ID, #"++InterfaceName++"_rq{"++RequestOutput++"} }.
+
 ",
 % .hrl
 "-ifndef("++HEADER_DEF++").
 -define("++HEADER_DEF++", true).
 
 "++IncludedHeaders++"
-% the bit size if it's known
--define("++Name++"_rq_bitsize, "++RequestSizes++" ).
--define("++Name++"_rp_bitsize, "++ReplySizes++" ).
+% bit size should be ignored
+%-define("++Name++"_rq_bitsize, "++RequestSizes++" ).
+%-define("++Name++"_rp_bitsize, "++ReplySizes++" ).
 
 -record("++InterfaceName++"_rq,{"++RequestRecordData++"}).
 -record("++InterfaceName++"_rp,{"++ReplyRecordData++"}).

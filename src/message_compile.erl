@@ -49,29 +49,26 @@ get_type() ->
 serialize(#"++InterfaceName++"{"++Input++"}) -> 
         <<"++Serializer++">>.
 
-parse(<<"++Deserializer++">>) ->
-        #"++InterfaceName++"{"++Output++"}.
+"++case rosie_utils:items_contain_usertyped_arrays(Items) of
+    true -> ?PARSE_N_TIMES_CODE; %paste extra code
+    false -> "" 
+    end
+++"
+
+parse(Payload_0) ->
+        "++Deserializer++",
+        ParseResult = #"++InterfaceName++"{"++Output++"},
+        {ParseResult,Payload_"++integer_to_list(length(Items))++"}.
 
 ",
-% parsing function should look like this for a twist message
-% since only vector3 module can calculate at runtime how long is its binary.
-% parse(Payload_0) -> 
-%         {LINEAR,Payload_1} = vector3_msg:parse(Payload_0),        
-%         {ANGULAR,Payload_2} = vector3_msg:parse(Payload_1),
-% 
-%          ParseResult = #twist{ linear = vector3_msg:parse(LINEAR), angular = vector3_msg:parse(ANGULAR)},
-% 
-%          case Payload_2 of
-%               <<>> -> ParseResult;
-%               _ -> {ParseResult,Payload_2}
-%           end.
+
 % .hrl NOTE: _bitsize is USELESS, we can't know at compile time the length of a user defined datatype, it could contain dinamic arrays
 "-ifndef("++HEADER_DEF++").
 -define("++HEADER_DEF++", true).
 
 "++IncludedHeaders++"
-% the bit size if it's known
--define("++Name++"_bitsize, "++Sizes++" ).
+% bit size should be ignored
+%-define("++Name++"_bitsize, "++Sizes++" ).
 
 -record("++InterfaceName++",{"++RecordData++"}).
 

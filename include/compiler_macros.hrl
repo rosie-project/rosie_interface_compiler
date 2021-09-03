@@ -22,12 +22,16 @@
 "% The payload is parsed a number of Times with the specified Module, all the binary left is returned.
 % this function is used to parse binary arrays into erlang lists
 parse_n_times(_, 0, Payload, List) -> 
-        {List, Payload};
+        {lists:reverse(List), Payload};
+% string special case
+parse_n_times(string, Times, Payload, List) -> 
+        <<L:32/little, STR:(L-1)/binary,_:(4 -(L-1) rem 4)/binary,REST/binary>> = Payload,
+        parse_n_times(string, Times-1, REST, [STR|List]);
 parse_n_times(Module, Times, Payload, List) -> 
         {Obj, REST} = Module:parse(Payload),
         parse_n_times(Module, Times-1, REST, [Obj|List]).
 parse_n_times(Module, Times, Payload) -> 
-        parse_n_times(Module, Times, Payload, RES).
+        parse_n_times(Module, Times, Payload, []).
 ").
 
 -endif.
