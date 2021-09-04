@@ -119,7 +119,7 @@ type_code(deserialize,VarName,{T,any}) ->
     end;
 type_code(output,VarName,{T,any}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> "lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++VarName++"_L))";
+        true -> "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++VarName++"_L)))";
         false -> VarName
     end;
 
@@ -133,7 +133,7 @@ type_code(deserialize,VarName,{T,L}) ->
     end;
 type_code(output,VarName,{T,L}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> "lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++L++"))";
+        true -> "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++L++")))";
         false -> VarName
     end;
 
@@ -149,13 +149,13 @@ type_code(_,VarName,float32) -> VarName++":32/float-little";
 type_code(output,VarName,float64) -> VarName;
 type_code(_,VarName,float64) -> VarName++":64/float-little";
 
-type_code(serialize,VarName,string) -> "(length("++VarName++")+1):32/little,(list_to_binary("++VarName++"))/binary,0:8";
+type_code(serialize,VarName,string) -> "(length("++VarName++")+1):32/little,(list_to_binary("++VarName++"))/binary,0:((4 - (length("++VarName++") rem 4)) * 8)";
 type_code(deserialize,VarName,string) -> VarName++"_L:32/little, "++VarName++":("++VarName++"_L-1)/binary,_:(4 -("++VarName++"_L-1) rem 4)/binary";
 type_code(output,VarName,string) -> "binary_to_list("++VarName++")";
 
 type_code(serialize,VarName,USER_TYPE) -> "("++file_name_to_interface_name(USER_TYPE)++"_msg:serialize("++VarName++"))/binary";
 type_code(deserialize,VarName,USER_TYPE) -> VarName++":(?"++USER_TYPE++"_bitsize)";
-type_code(output,VarName,USER_TYPE) -> file_name_to_interface_name(USER_TYPE)++"_msg:parse("++VarName++")".
+type_code(output,VarName,USER_TYPE) -> VarName.
 
 
 
