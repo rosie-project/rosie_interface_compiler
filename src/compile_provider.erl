@@ -40,6 +40,7 @@ do(State) ->
         Opts = rebar_app_info:opts(AppInfo),
         AppName = binary_to_list(rebar_app_info:name(AppInfo)),
         AppDir = rebar_app_info:dir(AppInfo),
+        compile_actions(Opts,AppName,AppDir),
         compile_services(Opts,AppName,AppDir),
         compile_messages(Opts,AppName,AppDir)
      end || AppInfo <- Apps],
@@ -49,6 +50,13 @@ do(State) ->
 -spec format_error(any()) ->  iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
+
+compile_actions(Opts, PkgName, AppDir) -> 
+    OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
+    SourceDir = filename:join(AppDir, "action"),
+    FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.action\$"),
+    CompileFun = fun(Source, Opts1) -> compile_action(PkgName, Source, OutDir) end,
+    rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
 compile_services(Opts, PkgName, AppDir) -> 
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
@@ -64,6 +72,54 @@ compile_messages(Opts, PkgName, AppDir) ->
     CompileFun = fun(Source, Opts1) -> compile(PkgName, Source, OutDir, message_compile) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
+compile_action(PkgName, Source, OutDir) ->
+    % rebar_api:info("ROSIE: called for: ~p\n",[Source]),
+    {ok, { ActionName, 
+        ActionModule,
+        ActionHeader,
+        Goal_srv, 
+        Cancel_srv, 
+        Result_srv, 
+        GoalStatusArray_msg, 
+        Feedback_msg,
+        GoalId_msg,
+        GoalInfo_msg} } = action_compile:file(PkgName,Source),
+    
+    
+    write_file(OutDir, ActionName++"_action.erl", ActionModule),
+    write_file(OutDir, ActionName++"_action.hrl", ActionHeader),
+
+    OutDirMeta = filename:join([OutDir, "actions", ActionName]),
+
+    write_file(OutDirMeta, "SendGoal.srv", Goal_srv),
+    write_file(OutDirMeta, "CancelGoal.srv", Cancel_srv),
+    write_file(OutDirMeta, "GetResult.srv", Result_srv),
+    write_file(OutDirMeta, "GoalStatusArray.msg", GoalStatusArray_msg),
+    write_file(OutDirMeta, "FeedbackMessage.msg", Feedback_msg),
+    write_file(OutDirMeta, "GoalId.msg", GoalId_msg),
+    write_file(OutDirMeta, "GoalStatus.msg", GoalInfo_msg),
+
+    OutDirActions = filename:join([OutDir, "actions"]),
+    ActionfileName =  filename:basename(Source, ".action"),
+    
+    compile("action_msgs", filename:join([OutDirMeta, "GoalId.msg"]), OutDirActions, message_compile),
+    compile("action_msgs", filename:join([OutDirMeta, "GoalStatus.msg"]), OutDirActions, message_compile),
+
+    %types require package name
+    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "SendGoal.srv"]), OutDirActions, service_compile),
+    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "GetResult.srv"]), OutDirActions, service_compile),
+    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "FeedbackMessage.msg"]), OutDirActions, message_compile),
+    % types are generic package is a default one
+    compile("action_msgs", filename:join([OutDirMeta, "GoalStatusArray.msg"]), OutDirActions,message_compile),
+    compile("action_msgs", filename:join([OutDirMeta, "CancelGoal.srv"]), OutDirActions, service_compile).
+
+compile(PkgName, ActionName, Source, OutDir, CompilerModule) ->
+    % rebar_api:info("ROSIE: called for: ~p\n",[Source]),
+    {ok, Filename, Code, Header} = CompilerModule:file(PkgName,ActionName, Source),
+    % Module
+    write_file(OutDir,Filename++".erl",Code),
+    % HEADER
+    write_file(OutDir,Filename++".hrl",Header).
 
 compile(PkgName, Source, OutDir, CompilerModule) ->
     % rebar_api:info("ROSIE: called for: ~p\n",[Source]),
@@ -84,8 +140,20 @@ write_file(OutDir,Filename,Text) ->
 -include_lib("eunit/include/eunit.hrl").
 
 clean_before_test() ->
-    FoundFiles = rebar_utils:find_files("test_interfaces/"++?GEN_CODE_DIR, ".*\\.[he]rl\$"),
+    FoundFiles = rebar_utils:find_files("test_interfaces/"++?GEN_CODE_DIR, ".*"),
     [file:delete(File) || File <- FoundFiles].
+
+compile_action_test() -> 
+    Files = rebar_utils:find_files("test_interfaces/action",".*\\.action\$"),
+    [compile_action("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
+
+    % MsgFiles = rebar_utils:find_files("test_interfaces/_rosie/actions",".*\\.msg\$"),
+    % [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR++"/actions",message_compile) || F <- MsgFiles],   
+    % SrvFiles = rebar_utils:find_files("test_interfaces/_rosie/actions",".*\\.srv\$"),
+    % [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR++"/actions",service_compile) || F <- SrvFiles],
+    ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie/actions",".*((_msg)|(_srv))\\.erl\$"),
+    [compile:file(M,[binary]) || M <- ModuleFiles],
+    [check_compilation_result(R) || R <- [compile:file(M,[verbose,report_errors,report_warnings,binary]) || M <- ModuleFiles]].
 
 compile_msg_test() -> 
     Files = rebar_utils:find_files("test_interfaces/msg",".*\\.msg\$"),

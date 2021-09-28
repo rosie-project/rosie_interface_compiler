@@ -1,14 +1,18 @@
 -module(service_compile).
 
--export([file/2]).
+-export([file/2,file/3]).
 
 -include_lib("include/compiler_macros.hrl").
 
 file(PkgName,Filename) ->     
-    {InterfaceName, Code, Header} = gen_interface(PkgName,Filename,scanner,service_parser),
+    {InterfaceName, Code, Header} = gen_interface(PkgName,"srv","",Filename,scanner,service_parser),
     {ok,InterfaceName, Code, Header}.
 
-gen_interface(PkgName,Filename,Scanner,Parser) -> 
+file(PkgName,ActionName, Filename) ->     
+    {InterfaceName, Code, Header} = gen_interface(PkgName,"action",ActionName,Filename,scanner,service_parser),
+    {ok,InterfaceName, Code, Header}.
+
+gen_interface(PkgName,Tag, ActionName, Filename,Scanner,Parser) -> 
     {ok,Bin} = file:read_file(Filename),
     %io:format(Bin),
     % checking the work of the scanner
@@ -18,16 +22,16 @@ gen_interface(PkgName,Filename,Scanner,Parser) ->
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
                 {ok,Res} ->% print_parsed_info(Res),
-                     generate_interface(PkgName,Filename,Res);
-                Else -> io:format("Parser failed: ~p\n",[Else])
+                     generate_interface(PkgName,Tag, ActionName, Filename, Res);
+                Else -> io:format("Service Parser failed: ~p\n",[Else])
             end;
-        ErrorInfo -> io:format("Scanner failed: ~p\n",[ErrorInfo])
+        ErrorInfo -> io:format("Service Scanner failed: ~p\n",[ErrorInfo])
     end.
 
 
-generate_interface(PkgName,Filename,{Request,Reply}) ->
+generate_interface(PkgName, Tag, ActionName, Filename,{Request,Reply}) ->
     Name = filename:basename(Filename,".srv"),
-    InterfaceName = rosie_utils:file_name_to_interface_name(Name),
+    InterfaceName = rosie_utils:file_name_to_interface_name(ActionName++Name),
     HEADER_DEF = string:to_upper(InterfaceName++"_srv"++"_hrl"),
     IncludedHeaders = rosie_utils:produce_includes(Request++Reply),
 
@@ -48,13 +52,28 @@ generate_interface(PkgName,Filename,{Request,Reply}) ->
 -include(\""++InterfaceName++"_srv.hrl\").
 
 % GENERAL
+
 get_name() ->
-        \""++InterfaceName++"\".
+        \""++case ActionName /= "" of
+            true -> string:lowercase(ActionName)++"/_action/";
+            false -> "" 
+            end
+        ++rosie_utils:file_name_to_interface_name(Name)++"\".
 
 get_type() ->
-        \""++PkgName++"::srv::dds_::"++Name++"_"++"\".
+        \""++PkgName++"::"++Tag++"::dds_::" 
+        ++case ActionName /= "" of
+            true -> ActionName++"_";
+            false -> "" 
+            end
+        ++Name++"_"++"\".
+
 "++case rosie_utils:items_contain_usertyped_arrays(Request++Reply) of
     true -> ?PARSE_N_TIMES_CODE; %paste extra code
+    false -> "" 
+    end
+++case rosie_utils:items_contain_std_arrays(Request++Reply) of
+    true -> ?BIN_TO_BIN_LIST_CODE; %paste extra code
     false -> "" 
     end
 ++

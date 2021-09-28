@@ -7,6 +7,7 @@ Rules.
 \[[0-9]+\] : {token, {array, string:trim(TokenChars,both,[$[,$]])}}.
 \[\] : {token, {array, any}}.
 char : {token, {type, char}}.
+int32 : {token, {type, int32}}. % TokenLine for line
 int64 : {token, {type, int64}}. % TokenLine for line
 float32 : {token, {type, float32}}.
 float64 : {token, {type, float64}}.

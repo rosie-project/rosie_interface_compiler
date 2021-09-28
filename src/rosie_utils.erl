@@ -12,7 +12,8 @@
         produce_record_def/1,
         type_code/3,
         parse_code/3,
-        items_contain_usertyped_arrays/1
+        items_contain_usertyped_arrays/1,
+        items_contain_std_arrays/1
 ]).
 
 
@@ -97,7 +98,7 @@ produce_record_def(Items) ->
                         end end, Items),",").
 
 get_defalt_val_for({Type,any}) -> "[]";
-get_defalt_val_for({Type,Array_L}) -> "[]";
+get_defalt_val_for({Type,Array_L}) -> "[ "++get_defalt_val_for(Type)++" || _ <- lists:seq(1,"++Array_L++")]";
 get_defalt_val_for(char) -> "0";
 get_defalt_val_for(int32) -> "0";
 get_defalt_val_for(int64) -> "0";
@@ -119,7 +120,7 @@ type_code(deserialize,VarName,{T,any}) ->
     end;
 type_code(output,VarName,{T,any}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++VarName++"_L)))";
+        true -> "[ E || <<"++type_code(deserialize,"E",T)++">> <- break_binary("++VarName++","++VarName++"_L,"++get_size_of(T)++")]";
         false -> VarName
     end;
 
@@ -139,6 +140,9 @@ type_code(output,VarName,{T,L}) ->
 
 type_code(output,VarName,char) -> VarName;
 type_code(_,VarName,char) -> VarName++":8/little";
+
+type_code(output,VarName,int32) -> VarName;
+type_code(_,VarName,int32) -> VarName++":32/signed-little";
 
 type_code(output,VarName,int64) -> VarName;
 type_code(_,VarName,int64) -> VarName++":64/signed-little";
@@ -186,10 +190,14 @@ parse_code(VarName,T,Index) ->
 
 items_contain_usertyped_arrays(Items) ->
     lists:any(fun ({{{type,T},{array,_}},_}) -> 
-                    case not lists:member(T,?ROS2_STATIC_PRIMITIVES) of
-                        true -> true;
-                        false -> false
-                    end;
+                    not lists:member(T,?ROS2_STATIC_PRIMITIVES);
+                (_) -> 
+                    false 
+                end, Items).
+
+items_contain_std_arrays(Items) ->
+    lists:any(fun ({{{type,T},{array,_}},_}) -> 
+                    lists:member(T,?ROS2_STATIC_PRIMITIVES);
                 (_) -> 
                     false 
                 end, Items).
