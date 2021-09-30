@@ -34,56 +34,50 @@ generate_interface(PkgName,Filename,{Goal_Items,Result_Items,Feedback_Items}) ->
 
         GOAL_SRV = 
         "# generated from "++Name++"\n"
-        ++"GoalId goal_id #16 bytes\n"
+        ++"UUID goal_id #16 bytes\n"
         ++[ L++"\n" || {line, L} <- Goal_Items]
         ++"---\n"
         ++"int32 responce_code\n"
         ++"char[8] timestamp\n",
         
         CANCEL_SRV = 
-        "GoalId goal_id\n"
+        "UUID goal_id\n"
         ++"char[8] timestamp\n"
         ++"---\n"
         ++"int32 responce_code\n"
-        ++"GoalId[] goals\n"
+        ++"UUID[] goals\n"
         ++"char[8] timestamp\n",
 
         RESULT_SRV = 
         "# generated from "++Name++"\n"
-        ++"GoalId goal_id\n"
+        ++"UUID goal_id\n"
         ++"---\n"
         ++"int32 goal_status\n"
         ++[ L++"\n" || {line, L} <- Result_Items],
 
-        Status_msg = "GoalStatus[] goals_states # with goalId, timestamp and status code (4 bytes)\n",
-
         Feedback_msg = 
         "# generated from "++Name++"\n"
-        ++"GoalId goal_id\n"
+        ++"UUID goal_id\n"
         ++[ L++"\n" || {line, L} <- Feedback_Items],
 
         {InterfaceName,
         gen_action_erl(PkgName, InterfaceName),
         gen_action_hrl(PkgName, InterfaceName),
-        GOAL_SRV, 
-        CANCEL_SRV, 
+        GOAL_SRV,
         RESULT_SRV,
-        Status_msg,
-        Feedback_msg,
-        "char[16] goal_id\n",
-        "GoalId goal_id\n"++"char[8] timestamp\n"++"int32 status_code\n"}.
+        Feedback_msg}.
 
 gen_action_hrl(PkgName, InterfaceName) -> 
     HEADER_DEF =string:to_upper(InterfaceName++"_action"++"_hrl"),
     "-ifndef("++HEADER_DEF++").
 -define("++HEADER_DEF++", true).
 
--include_lib(\""++PkgName++"/src/_rosie/actions/"++InterfaceName++"_"++"send_goal_srv.hrl\").
--include_lib(\""++PkgName++"/src/_rosie/actions/"++InterfaceName++"_"++"get_result_srv.hrl\").
--include_lib(\""++PkgName++"/src/_rosie/actions/"++InterfaceName++"_"++"feedback_message_msg.hrl\").
+-include_lib(\""++PkgName++"/src/_rosie/"++InterfaceName++"_"++"send_goal_srv.hrl\").
+-include_lib(\""++PkgName++"/src/_rosie/"++InterfaceName++"_"++"get_result_srv.hrl\").
+-include_lib(\""++PkgName++"/src/_rosie/"++InterfaceName++"_"++"feedback_message_msg.hrl\").
 
--include_lib(\""++PkgName++"/src/_rosie/actions/"++"cancel_goal_srv.hrl\").
--include_lib(\""++PkgName++"/src/_rosie/actions/"++"goal_status_array_msg.hrl\").
+-include_lib(\"action_msgs/src/_rosie/"++"cancel_goal_srv.hrl\").
+-include_lib(\"action_msgs/src/_rosie/"++"goal_status_array_msg.hrl\").
 
 -endif.".
 
@@ -92,8 +86,8 @@ gen_action_erl(PkgName, InterfaceName) ->
     "-module("++InterfaceName++"_action).\n"++
     "-include_lib(\""++PkgName++"/src/_rosie/"++InterfaceName++"_action.hrl\").\n"++
     "-export([goal/0,get_goal_id/1, get_goal_srv_module/0, get_result_srv_module/0, get_feedback_msg_module/0,get_status_topic_name/0,get_feedback_topic_name/0,identify_msg/1]).\n\n"++
-    "goal() -> #"++InterfaceName++"_send_goal_rq{goal_id = #goal_id{goal_id = binary:bin_to_list(<<(crypto:strong_rand_bytes(16))/binary>>) } }.\n"++
-    "get_goal_id(#"++InterfaceName++"_send_goal_rq{goal_id = #goal_id{goal_id = ID} }) -> ID.\n"++
+    "goal() -> #"++InterfaceName++"_send_goal_rq{goal_id = #u_u_i_d{uuid = binary:bin_to_list(<<(crypto:strong_rand_bytes(16))/binary>>) } }.\n"++
+    "get_goal_id(#"++InterfaceName++"_send_goal_rq{goal_id = #u_u_i_d{uuid = ID} }) -> ID.\n"++
     "get_goal_srv_module() -> "++InterfaceName++"_send_goal_srv.\n"++
     "get_result_srv_module() -> "++InterfaceName++"_get_result_srv.\n"++
     "get_feedback_msg_module() -> "++InterfaceName++"_feedback_message_msg.\n\n"++

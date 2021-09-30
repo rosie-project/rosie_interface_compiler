@@ -33,7 +33,7 @@ generate_interface(PkgName, Tag, ActionName, Filename,{Request,Reply}) ->
     Name = filename:basename(Filename,".srv"),
     InterfaceName = rosie_utils:file_name_to_interface_name(ActionName++Name),
     HEADER_DEF = string:to_upper(InterfaceName++"_srv"++"_hrl"),
-    IncludedHeaders = rosie_utils:produce_includes(Request++Reply),
+    IncludedHeaders = rosie_utils:produce_includes(PkgName,Request++Reply),
 
     {RequestInput,RequestOutput, SerializerRequest,DeserializerRequest}  = rosie_utils:produce_in_out(Request),
     RequestSizes = string:join(rosie_utils:get_bitsizes(Request),"+"),

@@ -34,7 +34,7 @@ generate_interface(PkgName,Tag,ActionName,Filename,{Items}) ->
     Name = filename:basename(Filename,".msg"),
     InterfaceName = string:lowercase(ActionName)++rosie_utils:file_name_to_interface_name(Name),
     {Input,Output, Serializer,Deserializer}  = rosie_utils:produce_in_out(Items),
-    IncludedHeaders = rosie_utils:produce_includes(Items),
+    IncludedHeaders = rosie_utils:produce_includes(PkgName,Items),
     HEADER_DEF = string:to_upper(InterfaceName++"_msg"++"_hrl"),
     Sizes = string:join(rosie_utils:get_bitsizes(Items),"+"),
     RecordData = rosie_utils:produce_record_def(Items),

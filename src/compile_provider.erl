@@ -78,12 +78,8 @@ compile_action(PkgName, Source, OutDir) ->
         ActionModule,
         ActionHeader,
         Goal_srv, 
-        Cancel_srv, 
-        Result_srv, 
-        GoalStatusArray_msg, 
-        Feedback_msg,
-        GoalId_msg,
-        GoalInfo_msg} } = action_compile:file(PkgName,Source),
+        Result_srv,
+        Feedback_msg} } = action_compile:file(PkgName,Source),
     
     
     write_file(OutDir, ActionName++"_action.erl", ActionModule),
@@ -92,26 +88,16 @@ compile_action(PkgName, Source, OutDir) ->
     OutDirMeta = filename:join([OutDir, "actions", ActionName]),
 
     write_file(OutDirMeta, "SendGoal.srv", Goal_srv),
-    write_file(OutDirMeta, "CancelGoal.srv", Cancel_srv),
     write_file(OutDirMeta, "GetResult.srv", Result_srv),
-    write_file(OutDirMeta, "GoalStatusArray.msg", GoalStatusArray_msg),
     write_file(OutDirMeta, "FeedbackMessage.msg", Feedback_msg),
-    write_file(OutDirMeta, "GoalId.msg", GoalId_msg),
-    write_file(OutDirMeta, "GoalStatus.msg", GoalInfo_msg),
 
-    OutDirActions = filename:join([OutDir, "actions"]),
+    % OutDirActions = filename:join([OutDir, "actions"]),
     ActionfileName =  filename:basename(Source, ".action"),
-    
-    compile("action_msgs", filename:join([OutDirMeta, "GoalId.msg"]), OutDirActions, message_compile),
-    compile("action_msgs", filename:join([OutDirMeta, "GoalStatus.msg"]), OutDirActions, message_compile),
 
     %types require package name
-    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "SendGoal.srv"]), OutDirActions, service_compile),
-    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "GetResult.srv"]), OutDirActions, service_compile),
-    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "FeedbackMessage.msg"]), OutDirActions, message_compile),
-    % types are generic package is a default one
-    compile("action_msgs", filename:join([OutDirMeta, "GoalStatusArray.msg"]), OutDirActions,message_compile),
-    compile("action_msgs", filename:join([OutDirMeta, "CancelGoal.srv"]), OutDirActions, service_compile).
+    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "SendGoal.srv"]), OutDir, service_compile),
+    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "GetResult.srv"]), OutDir, service_compile),
+    compile(PkgName, ActionfileName, filename:join([OutDirMeta, "FeedbackMessage.msg"]), OutDir, message_compile).
 
 compile(PkgName, ActionName, Source, OutDir, CompilerModule) ->
     % rebar_api:info("ROSIE: called for: ~p\n",[Source]),
@@ -145,7 +131,7 @@ clean_before_test() ->
 
 compile_action_test() -> 
     Files = rebar_utils:find_files("test_interfaces/action",".*\\.action\$"),
-    [compile_action("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR) || F <- Files],
+    [compile_action("test_interfaces" ,F, "test_interfaces/src/"++?GEN_CODE_DIR) || F <- Files],
 
     % MsgFiles = rebar_utils:find_files("test_interfaces/_rosie/actions",".*\\.msg\$"),
     % [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR++"/actions",message_compile) || F <- MsgFiles],   
@@ -157,14 +143,14 @@ compile_action_test() ->
 
 compile_msg_test() -> 
     Files = rebar_utils:find_files("test_interfaces/msg",".*\\.msg\$"),
-    [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR,message_compile) || F <- Files],
+    [compile("test_interfaces" ,F, "test_interfaces/src/"++?GEN_CODE_DIR,message_compile) || F <- Files],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*_msg\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
     [check_compilation_result(R) || R <- [compile:file(M,[verbose,report_errors,report_warnings,binary]) || M <- ModuleFiles]].
 
 compile_srv_test() -> 
     Files = rebar_utils:find_files("test_interfaces/srv",".*\\.srv\$"),
-    [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR,service_compile) || F <- Files],
+    [compile("test_interfaces" ,F, "test_interfaces/src/"++?GEN_CODE_DIR,service_compile) || F <- Files],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie",".*_srv\\.erl\$"),
     [compile:file(M,[binary]) || M <- ModuleFiles],
     [check_compilation_result(R) || R <- [compile:file(M,[verbose,report_errors,report_warnings,binary]) || M <- ModuleFiles]].
