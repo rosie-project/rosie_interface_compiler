@@ -34,14 +34,14 @@ generate_interface(PkgName,Filename,{Goal_Items,Result_Items,Feedback_Items}) ->
 
         GOAL_SRV = 
         "# generated from "++Name++"\n"
-        ++"UUID goal_id #16 bytes\n"
+        ++"unique_identifier_msgs/UUID goal_id #16 bytes\n"
         ++[ L++"\n" || {line, L} <- Goal_Items]
         ++"---\n"
         ++"int32 responce_code\n"
         ++"char[8] timestamp\n",
         
         CANCEL_SRV = 
-        "UUID goal_id\n"
+        "unique_identifier_msgs/UUID goal_id\n"
         ++"char[8] timestamp\n"
         ++"---\n"
         ++"int32 responce_code\n"
@@ -50,14 +50,14 @@ generate_interface(PkgName,Filename,{Goal_Items,Result_Items,Feedback_Items}) ->
 
         RESULT_SRV = 
         "# generated from "++Name++"\n"
-        ++"UUID goal_id\n"
+        ++"unique_identifier_msgs/UUID goal_id\n"
         ++"---\n"
         ++"int32 goal_status\n"
         ++[ L++"\n" || {line, L} <- Result_Items],
 
         Feedback_msg = 
         "# generated from "++Name++"\n"
-        ++"UUID goal_id\n"
+        ++"unique_identifier_msgs/UUID goal_id\n"
         ++[ L++"\n" || {line, L} <- Feedback_Items],
 
         {InterfaceName,
