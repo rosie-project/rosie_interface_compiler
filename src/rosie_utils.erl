@@ -3,11 +3,11 @@
 -include_lib("include/compiler_macros.hrl").
 
 -export([
-        get_bitsizes/1,
+        %get_bitsizes/1,
         file_name_to_interface_name/1,
         produce_includes/2,
         produce_in_out/1,
-        get_size_of/1,
+        get_size_of_base_type/1,
         get_defalt_val_for/1,
         produce_record_def/1,
         type_code/3,
@@ -47,6 +47,25 @@ produce_includes(PkgName, Items) ->
     ExternalIncludeLines = lists:map(fun({Pkg,T}) -> "-include_lib(\""++Pkg++"/src/_rosie/"++file_name_to_interface_name(T)++"_msg.hrl\").\n" end, ExtPkg),
     lists:flatten(LocalIncludeLines ++ ExternalIncludeLines).
 
+alignement_for_type({array,_,any}) -> "0";
+alignement_for_type({array,Type,L}) ->
+    case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
+        true ->    TypeSize = list_to_integer(get_size_of_base_type(Type))*list_to_integer(L),
+                    case TypeSize < 32 of
+                        true -> integer_to_list(32-TypeSize);
+                        false -> "0"
+                    end;
+        false -> "0"
+    end;
+alignement_for_type(Type) ->
+    case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
+        true ->    TypeSize = list_to_integer(get_size_of_base_type(Type)),
+                    case TypeSize < 32 of
+                        true ->integer_to_list(32-TypeSize);
+                        false -> "0"
+                    end;
+        false -> "0"
+    end.
     
 produce_in_out(DataList) ->
         VarNames = lists:map(fun({_,{name,N}}) -> N end, DataList),
@@ -65,7 +84,7 @@ produce_in_out(DataList) ->
                             lists:zip3(VarNames, InputVars,VarTypes))
                         ,","),
         SerializerCode = string:join(
-                                lists:map(fun({T,InputVar}) -> " "++rosie_utils:type_code(serialize,InputVar,T) end, 
+                                lists:map(fun({T,InputVar}) -> " "++rosie_utils:type_code(serialize,InputVar,T)++",0:"++alignement_for_type(T) end, 
                                     lists:zip(VarTypes,InputVars))
                         ,","),
         DeserializerCode = string:join(
@@ -86,21 +105,19 @@ get_bitsizes(Items) ->
 
 get_bitsizes([],Sizes) -> Sizes;
 get_bitsizes([I|TL],S) -> 
-    get_bitsizes(TL,[get_size_of(I)|S]).
+    get_bitsizes(TL,[get_size_of_base_type(I)|S]).
 
-get_size_of({Type,any}) -> "0";
-get_size_of({Type,Array_L}) -> get_size_of(Type)++"*"++Array_L;
-get_size_of(char) -> "8";
-get_size_of(int8) -> "8";
-get_size_of(uint8) -> "8";
-get_size_of(uint32) -> "32";
-get_size_of(int32) -> "32";
-get_size_of(int64) -> "64";
-get_size_of(float32) -> "32";
-get_size_of(float64) -> "64";
-get_size_of(string) -> "dinamic";
-get_size_of({_,UserType}) -> "?"++UserType++"_bitsize";
-get_size_of(UserType) -> "?"++UserType++"_bitsize".
+get_size_of_base_type({Type,any}) -> "0";
+get_size_of_base_type({Type,Array_L}) -> get_size_of_base_type(Type)++"*"++Array_L;
+get_size_of_base_type(char) -> "8";
+get_size_of_base_type(int8) -> "8";
+get_size_of_base_type(uint8) -> "8";
+get_size_of_base_type(uint32) -> "32";
+get_size_of_base_type(int32) -> "32";
+get_size_of_base_type(int64) -> "64";
+get_size_of_base_type(float32) -> "32";
+get_size_of_base_type(float64) -> "64";
+get_size_of_base_type(string) -> "0".
 
 produce_record_def(Items) ->
     string:join(lists:map(fun({TypeToken,{name,N}}) -> 
@@ -131,12 +148,12 @@ type_code(serialize, VarName, {array, T, any}) ->
     (list_to_binary(lists:map(fun (E) -> <<"++type_code(serialize,"E",T) ++">> end,"++VarName++")))/binary";
 type_code(deserialize, VarName, {array, T, any}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> VarName++"_L:32/little, "++VarName++":("++VarName++"_L*"++get_size_of(T)++" div 8)/binary";
+        true -> VarName++"_L:32/little, "++VarName++":("++VarName++"_L*"++get_size_of_base_type(T)++" div 8)/binary";
         false -> VarName
     end;
 type_code(output,VarName,{array, T, any}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> "[ E || <<"++type_code(deserialize,"E",T)++">> <- break_binary("++VarName++","++VarName++"_L,"++get_size_of(T)++")]";
+        true -> "[ E || <<"++type_code(deserialize,"E",T)++">> <- break_binary("++VarName++","++VarName++"_L,"++get_size_of_base_type(T)++")]";
         false -> VarName
     end;
 
@@ -145,12 +162,12 @@ type_code(serialize, VarName, {array, T, L}) ->
     "(list_to_binary(lists:map(fun (E) -> <<"++type_code(serialize,"E",T) ++">> end,"++VarName++")))/binary";
 type_code(deserialize, VarName, {array, T, L}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> VarName++":("++L++"*"++get_size_of(T)++" div 8)/binary";
+        true -> VarName++":("++L++"*"++get_size_of_base_type(T)++" div 8)/binary";
         false -> VarName
     end;
 type_code(output, VarName, {array, T, L}) -> 
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true -> "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of(T)++" div 8,"++get_size_of(T)++" div 8) end,lists:seq(1,"++L++")))";
+        true -> "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("++VarName++"),N*"++get_size_of_base_type(T)++" div 8,"++get_size_of_base_type(T)++" div 8) end,lists:seq(1,"++L++")))";
         false -> VarName
     end;
 
@@ -214,7 +231,7 @@ parse_code(VarName,{_,T},Index) ->
     "{"++VarName++", Payload_"++integer_to_list(Index)++"} = "++file_name_to_interface_name(T)++"_msg:parse(Payload_"++integer_to_list(Index-1)++")";
 parse_code(VarName,T,Index) -> 
     case lists:member(T, ?ROS2_PRIMITIVES) of
-        true -> "<<"++type_code(deserialize,VarName,T)++",Payload_"++integer_to_list(Index)++"/binary>> =  Payload_"++integer_to_list(Index-1);
+        true -> "<< "++type_code(deserialize,VarName,T)++",_:"++alignement_for_type(T)++",Payload_"++integer_to_list(Index)++"/binary>> =  Payload_"++integer_to_list(Index-1);
         false -> "{"++VarName++", Payload_"++integer_to_list(Index)++"} = "++file_name_to_interface_name(T)++"_msg:parse(Payload_"++integer_to_list(Index-1)++")"
     end.
 

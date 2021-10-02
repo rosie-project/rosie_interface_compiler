@@ -40,14 +40,6 @@ generate_interface(PkgName,Filename,{Goal_Items,Result_Items,Feedback_Items}) ->
         ++"int32 responce_code\n"
         ++"char[8] timestamp\n",
         
-        CANCEL_SRV = 
-        "unique_identifier_msgs/UUID goal_id\n"
-        ++"char[8] timestamp\n"
-        ++"---\n"
-        ++"int32 responce_code\n"
-        ++"UUID[] goals\n"
-        ++"char[8] timestamp\n",
-
         RESULT_SRV = 
         "# generated from "++Name++"\n"
         ++"unique_identifier_msgs/UUID goal_id\n"
@@ -85,14 +77,14 @@ gen_action_hrl(PkgName, InterfaceName) ->
 gen_action_erl(PkgName, InterfaceName) -> 
     "-module("++InterfaceName++"_action).\n"++
     "-include_lib(\""++PkgName++"/src/_rosie/"++InterfaceName++"_action.hrl\").\n"++
-    "-export([goal/0,get_goal_id/1, get_goal_srv_module/0, get_result_srv_module/0, get_feedback_msg_module/0,get_status_topic_name/0,get_feedback_topic_name/0,identify_msg/1]).\n\n"++
+    "-export([goal/0,get_goal_id/1, get_goal_srv_module/0, get_result_srv_module/0, get_feedback_msg_module/0,get_action_name/0,identify_msg/1]).\n\n"++
+    
     "goal() -> #"++InterfaceName++"_send_goal_rq{goal_id = #u_u_i_d{uuid = binary:bin_to_list(<<(crypto:strong_rand_bytes(16))/binary>>) } }.\n"++
     "get_goal_id(#"++InterfaceName++"_send_goal_rq{goal_id = #u_u_i_d{uuid = ID} }) -> ID.\n"++
     "get_goal_srv_module() -> "++InterfaceName++"_send_goal_srv.\n"++
     "get_result_srv_module() -> "++InterfaceName++"_get_result_srv.\n"++
     "get_feedback_msg_module() -> "++InterfaceName++"_feedback_message_msg.\n\n"++
-    "get_feedback_topic_name() -> \""++InterfaceName++"/_action/feedback\".\n"++
-    "get_status_topic_name() -> \""++InterfaceName++"/_action/status\".\n\n"++
+    "get_action_name() -> \""++InterfaceName++"\".\n"
     "identify_msg(#"++InterfaceName++"_send_goal_rp{}) -> send_goal_rp;\n"++
     "identify_msg(#"++InterfaceName++"_get_result_rp{}) -> get_result_rp;\n"++
     "identify_msg(#cancel_goal_rp{}) -> cancel_goal_rp;\n"++

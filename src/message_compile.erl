@@ -36,7 +36,6 @@ generate_interface(PkgName,Tag,ActionName,Filename,{Items}) ->
     {Input,Output, Serializer,Deserializer}  = rosie_utils:produce_in_out(Items),
     IncludedHeaders = rosie_utils:produce_includes(PkgName,Items),
     HEADER_DEF = string:to_upper(InterfaceName++"_msg"++"_hrl"),
-    Sizes = string:join(rosie_utils:get_bitsizes(Items),"+"),
     RecordData = rosie_utils:produce_record_def(Items),
     % string of code as output
     {InterfaceName++"_msg", 
@@ -76,8 +75,6 @@ parse(Payload_0) ->
 -define("++HEADER_DEF++", true).
 
 "++IncludedHeaders++"
-% bit size should be ignored
-%-define("++Name++"_bitsize, "++Sizes++" ).
 
 -record("++InterfaceName++",{"++RecordData++"}).
 

@@ -36,11 +36,9 @@ generate_interface(PkgName, Tag, ActionName, Filename,{Request,Reply}) ->
     IncludedHeaders = rosie_utils:produce_includes(PkgName,Request++Reply),
 
     {RequestInput,RequestOutput, SerializerRequest,DeserializerRequest}  = rosie_utils:produce_in_out(Request),
-    RequestSizes = string:join(rosie_utils:get_bitsizes(Request),"+"),
     RequestRecordData = rosie_utils:produce_record_def(Request),
 
     {ReplyInput,ReplyOutput,SerializerReply,DeserializerReply}  = rosie_utils:produce_in_out(Reply),
-    ReplySizes = string:join(rosie_utils:get_bitsizes(Reply),"+"),
     ReplyRecordData = rosie_utils:produce_record_def(Reply),
     % string of code as output
     {InterfaceName++"_srv", 
@@ -100,9 +98,6 @@ parse_request(<<Client_ID:8/binary, 1:64/little, Payload_0/binary>>) ->
 -define("++HEADER_DEF++", true).
 
 "++IncludedHeaders++"
-% bit size should be ignored
-%-define("++Name++"_rq_bitsize, "++RequestSizes++" ).
-%-define("++Name++"_rp_bitsize, "++ReplySizes++" ).
 
 -record("++InterfaceName++"_rq,{"++RequestRecordData++"}).
 -record("++InterfaceName++"_rp,{"++ReplyRecordData++"}).
