@@ -44,7 +44,7 @@ generate_interface(PkgName, Tag, ActionName, Filename,{Request,Reply}) ->
     {InterfaceName++"_srv", 
 "-module("++InterfaceName++"_srv).
 
--export([get_name/0, get_type/0, serialize_request/2, serialize_reply/2, parse_request/1, parse_reply/1]).
+-export([get_name/0, get_type/0, serialize_request/3, serialize_reply/3, parse_request/1, parse_reply/1]).
 
 % self include
 -include(\""++InterfaceName++"_srv.hrl\").
@@ -77,20 +77,20 @@ get_type() ->
 ++
 "
 % CLIENT
-serialize_request(Client_ID,#"++InterfaceName++"_rq{"++RequestInput++"}) -> 
-        <<Client_ID:8/binary, 1:64/little,"++SerializerRequest++">>.
+serialize_request(Client_ID, RequestNumber, #"++InterfaceName++"_rq{"++RequestInput++"}) -> 
+        <<Client_ID:8/binary, RequestNumber:64/little, "++SerializerRequest++">>.
 
-parse_reply(<<Client_ID:8/binary, 1:64/little, Payload_0/binary>>) ->
+parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->
         "++DeserializerReply++",
-        { Client_ID, #"++InterfaceName++"_rp{"++ReplyOutput++"} }.
+        { Client_ID, RequestNumber, #"++InterfaceName++"_rp{"++ReplyOutput++"} }.
 
 % SERVER        
-serialize_reply(Client_ID,#"++InterfaceName++"_rp{"++ReplyInput++"}) -> 
-        <<Client_ID:8/binary, 1:64/little, "++SerializerReply++">>.
+serialize_reply(Client_ID, RequestNumber, #"++InterfaceName++"_rp{"++ReplyInput++"}) -> 
+        <<Client_ID:8/binary, RequestNumber:64/little, "++SerializerReply++">>.
 
-parse_request(<<Client_ID:8/binary, 1:64/little, Payload_0/binary>>) ->
+parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->
         "++DeserializerRequest++",
-        { Client_ID, #"++InterfaceName++"_rq{"++RequestOutput++"} }.
+        { Client_ID, RequestNumber, #"++InterfaceName++"_rq{"++RequestOutput++"} }.
 
 ",
 % .hrl
