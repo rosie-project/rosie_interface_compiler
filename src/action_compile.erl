@@ -80,8 +80,8 @@ gen_action_erl(PkgName, InterfaceName) ->
     "-export([goal/0,get_goal_id/1, get_goal_srv_module/0, get_result_srv_module/0, get_feedback_msg_module/0,get_action_name/0,get_responce_code/1,identify_msg/1]).\n\n"++
     
     "goal() -> #"++InterfaceName++"_send_goal_rq{goal_id = #u_u_i_d{uuid = binary:bin_to_list(<<(crypto:strong_rand_bytes(16))/binary>>) } }.\n"++
-    "get_goal_id(#"++InterfaceName++"_send_goal_rq{goal_id = #u_u_i_d{uuid = ID} }) -> ID;\n"++
-    "get_goal_id(#"++InterfaceName++"_get_result_rq{goal_id = #u_u_i_d{uuid = ID} }) -> ID.\n"++
+    "get_goal_id(#"++InterfaceName++"_send_goal_rq{goal_id = UUID }) -> UUID;\n"++
+    "get_goal_id(#"++InterfaceName++"_get_result_rq{goal_id = UUID }) -> UUID.\n"++
     "get_goal_srv_module() -> "++InterfaceName++"_send_goal_srv.\n"++
     "get_result_srv_module() -> "++InterfaceName++"_get_result_srv.\n"++
     "get_feedback_msg_module() -> "++InterfaceName++"_feedback_message_msg.\n\n"++
