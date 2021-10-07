@@ -24,13 +24,13 @@ gen_interface(PkgName,Tag,ActionName,Filename,Scanner,Parser) ->
             case Parser:parse(Tokens) of
                 {ok,Res} ->% print_parsed_info(Res),
                      generate_interface(PkgName,Tag,ActionName,Filename,Res);
-                Else -> io:format("Message Parser failed: ~p\n",[Else])
+                Else -> io:format("Message Parser failed: ~p\n On tokens : ~p\n",[Else,Tokens])
             end;
-        ErrorInfo -> io:format("Message Scanner failed: ~p\n",[ErrorInfo])
+        ErrorInfo -> io:format("Message Scanner failed: ~p\n On File ~p\n",[ErrorInfo,Filename])
     end.
 
 
-generate_interface(PkgName,Tag,ActionName,Filename,{Items}) ->
+generate_interface(PkgName,Tag,ActionName,Filename,{Constants,Items}) ->
     Name = filename:basename(Filename,".msg"),
     InterfaceName = string:lowercase(ActionName)++rosie_utils:file_name_to_interface_name(Name),
     {Input,Output, Serializer,Deserializer}  = rosie_utils:produce_in_out(Items),
@@ -75,6 +75,10 @@ parse(Payload_0) ->
 -define("++HEADER_DEF++", true).
 
 "++IncludedHeaders++"
+
+"++
+rosie_utils:produce_defines(Constants)
+++"
 
 -record("++InterfaceName++",{"++RecordData++"}).
 

@@ -23,13 +23,13 @@ gen_interface(PkgName,Tag, ActionName, Filename,Scanner,Parser) ->
             case Parser:parse(Tokens) of
                 {ok,Res} ->% print_parsed_info(Res),
                      generate_interface(PkgName,Tag, ActionName, Filename, Res);
-                Else -> io:format("Service Parser failed: ~p\n",[Else])
+                Else -> io:format("Service Parser failed: ~p\n On tokens : ~p\n",[Else,Tokens])
             end;
         ErrorInfo -> io:format("Service Scanner failed: ~p\n",[ErrorInfo])
     end.
 
 
-generate_interface(PkgName, Tag, ActionName, Filename,{Request,Reply}) ->
+generate_interface(PkgName, Tag, ActionName, Filename,{Constants,Request,Reply}) ->
     Name = filename:basename(Filename,".srv"),
     InterfaceName = rosie_utils:file_name_to_interface_name(ActionName++Name),
     HEADER_DEF = string:to_upper(InterfaceName++"_srv"++"_hrl"),
@@ -98,6 +98,10 @@ parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>)
 -define("++HEADER_DEF++", true).
 
 "++IncludedHeaders++"
+
+"++
+rosie_utils:produce_defines(Constants)
+++"
 
 -record("++InterfaceName++"_rq,{"++RequestRecordData++"}).
 -record("++InterfaceName++"_rp,{"++ReplyRecordData++"}).

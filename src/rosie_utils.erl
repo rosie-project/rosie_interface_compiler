@@ -6,6 +6,7 @@
         %get_bitsizes/1,
         file_name_to_interface_name/1,
         produce_includes/2,
+        produce_defines/1,
         produce_in_out/1,
         get_size_of_base_type/1,
         get_defalt_val_for/1,
@@ -46,6 +47,11 @@ produce_includes(PkgName, Items) ->
     LocalIncludeLines = lists:map(fun(T) -> "-include_lib(\""++PkgName++"/src/_rosie/"++file_name_to_interface_name(T)++"_msg.hrl\").\n" end, LocalPkg),
     ExternalIncludeLines = lists:map(fun({Pkg,T}) -> "-include_lib(\""++Pkg++"/src/_rosie/"++file_name_to_interface_name(T)++"_msg.hrl\").\n" end, ExtPkg),
     lists:flatten(LocalIncludeLines ++ ExternalIncludeLines).
+
+
+produce_defines(Constants) ->
+    string:join(lists:map(fun ({_, {macro,N}, {value, V}}) -> "-define("++N++", "++V++")." end, Constants),"\n").
+
 
 alignement_for_type({array,_,any}) -> "0";
 alignement_for_type({array,Type,L}) ->

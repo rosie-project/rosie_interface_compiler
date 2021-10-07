@@ -18,8 +18,10 @@ string : {token, {type, string}}.
 string<=[0-9]+ : {token, {type, string}}. % bound string is treated as an infinite one for simplicity
 [A-Z][A-Za-z0-9]* : {token, {type, TokenChars}}. % User defined type
 [a-z_]+/[A-Z][A-Za-z0-9]* : {token, {type, split_pkg_and_type(TokenChars)}}. % User defined type in an external pkg
+[A-Z_]+ : {token, {macro, TokenChars}}.
+= :  {token, {assignement}}.
+-?[0-9]+ : {token,{value, TokenChars}}.
 --- : {token, {separator}}.
-% [a-z_]+/ : skip_token. % prefixes like packages specified before a msg type are ignored
 [a-z_]+ : {token, {name, TokenChars}}.
 #.* : skip_token. % Comments
 [\s\t\n\r]+ : skip_token.
