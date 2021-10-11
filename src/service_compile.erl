@@ -78,10 +78,16 @@ get_type() ->
 "
 % CLIENT
 serialize_request(Client_ID, RequestNumber, #"++InterfaceName++"_rq{"++RequestInput++"}) -> 
-        <<Client_ID:8/binary, RequestNumber:64/little, "++SerializerRequest++">>.
+        <<Client_ID:8/binary, RequestNumber:64/little"++case SerializerRequest of 
+            [] -> ""; 
+            Code -> ","++Code
+        end++">>.
 
 parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->
-        "++DeserializerReply++",
+        "++case DeserializerReply of 
+            [] -> ""; 
+            Code -> Code++"," 
+        end++"
         { Client_ID, RequestNumber, #"++InterfaceName++"_rp{"++ReplyOutput++"} }.
 
 % SERVER        
@@ -89,7 +95,10 @@ serialize_reply(Client_ID, RequestNumber, #"++InterfaceName++"_rp{"++ReplyInput+
         <<Client_ID:8/binary, RequestNumber:64/little, "++SerializerReply++">>.
 
 parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->
-        "++DeserializerRequest++",
+        "++case DeserializerRequest of 
+            [] -> ""; 
+            Code -> Code++"," 
+        end++"
         { Client_ID, RequestNumber, #"++InterfaceName++"_rq{"++RequestOutput++"} }.
 
 ",

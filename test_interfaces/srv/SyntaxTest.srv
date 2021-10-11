@@ -1,0 +1,10 @@
+# okke
+
+string<=256 home_name
+string CONST = "aaallora"
+---
+uint32 my_val -17
+float32 my_float 17.8
+int8 THE_NUM_A = 88
+float32 THE_NUM_B = -88.9
+

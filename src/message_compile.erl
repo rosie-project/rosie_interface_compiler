@@ -18,12 +18,12 @@ gen_interface(PkgName,Tag,ActionName,Filename,Scanner,Parser) ->
     %io:format(Bin),
     % checking the work of the scanner
     case Scanner:string(binary_to_list(Bin)) of
+        {ok,[],_} -> generate_interface(PkgName,Tag,ActionName,Filename,{[],[]});
         {ok,Tokens,EndLine} -> 
             %io:format("~p\n",[Tokens]),
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
-                {ok,Res} ->% print_parsed_info(Res),
-                     generate_interface(PkgName,Tag,ActionName,Filename,Res);
+                {ok,Res} -> generate_interface(PkgName,Tag,ActionName,Filename,Res);
                 Else -> io:format("Message Parser failed: ~p\n On tokens : ~p\n",[Else,Tokens])
             end;
         ErrorInfo -> io:format("Message Scanner failed: ~p\n On File ~p\n",[ErrorInfo,Filename])
@@ -64,7 +64,10 @@ serialize(#"++InterfaceName++"{"++Input++"}) ->
 ++"
 
 parse(Payload_0) ->
-        "++Deserializer++",
+        "++case Deserializer of 
+            [] -> ""; 
+            Code -> Code++"," 
+        end++"
         ParseResult = #"++InterfaceName++"{"++Output++"},
         {ParseResult,Payload_"++integer_to_list(length(Items))++"}.
 

@@ -28,15 +28,14 @@ file_name_to_interface_name(Name) ->
                 end, Splitted),
     string:lowercase(string:trim(Separated, leading, "_")).
 
-
-
+get_type_from_item({TypeToken,_} ) ->
+    case TypeToken of
+        {type,T} -> T;
+        {{type,T},{array,_}} -> T                                 
+    end.
 
 produce_includes(PkgName, Items) -> 
-    VarTypes = lists:map(fun({TypeToken,_}) -> 
-                            case TypeToken of
-                                {type,T} -> T;
-                                {{type,T},{array,_}} -> T                                 
-                            end end, Items),
+    VarTypes = lists:map(fun get_type_from_item/1, Items),
     UserTypes = [T || T <- VarTypes, not lists:member(T,?ROS2_PRIMITIVES)],
 
     No_duplicates = sets:to_list(sets:from_list(UserTypes)),
@@ -74,13 +73,15 @@ alignement_for_type(Type) ->
     end.
     
 produce_in_out(DataList) ->
-        VarNames = lists:map(fun({_,{name,N}}) -> N end, DataList),
+        VarNames = lists:map(fun({_,{{name,N},_}}) -> N;
+                                ({_,{name,N}}) -> N end, DataList),
         VarTypes = lists:map(fun({TypeToken,_}) -> 
                             case TypeToken of
                                 {type,T} -> T;
                                 {{type,T},{array,L}} -> {array,T,L}                                 
                             end end, DataList),
-        InputVars = lists:map(fun({_,{name,N}}) -> string:to_upper(N) end, DataList),
+        InputVars = lists:map(fun({_,{{name,N},_}}) -> N;
+                                ({_,{name,N}}) -> string:to_upper(N) end, DataList),
         InputCode = string:join(
                         lists:map(fun({LowName,CapName}) -> " "++LowName++" = "++CapName end, 
                             lists:zip(VarNames, InputVars))
@@ -116,28 +117,38 @@ get_bitsizes([I|TL],S) ->
 get_size_of_base_type({Type,any}) -> "0";
 get_size_of_base_type({Type,Array_L}) -> get_size_of_base_type(Type)++"*"++Array_L;
 get_size_of_base_type(char) -> "8";
-get_size_of_base_type(int8) -> "8";
 get_size_of_base_type(uint8) -> "8";
+get_size_of_base_type(uint16) -> "16";
 get_size_of_base_type(uint32) -> "32";
+get_size_of_base_type(uint64) -> "64";
+get_size_of_base_type(int8) -> "8";
+get_size_of_base_type(int16) -> "16";
 get_size_of_base_type(int32) -> "32";
 get_size_of_base_type(int64) -> "64";
 get_size_of_base_type(float32) -> "32";
 get_size_of_base_type(float64) -> "64";
 get_size_of_base_type(string) -> "0".
 
+record_field_from_item({TypeToken,{{name,N},{value,DEFAULT}}}) ->
+    N++"="++DEFAULT;
+record_field_from_item({TypeToken,{name,N}}) ->
+    case TypeToken of
+        {type,T} -> N++"="++get_defalt_val_for(T);
+        {{type,T},{array,L}} -> N++"="++get_defalt_val_for({array,T,L})
+    end.
+
 produce_record_def(Items) ->
-    string:join(lists:map(fun({TypeToken,{name,N}}) -> 
-                    case TypeToken of
-                        {type,T} -> N++"="++get_defalt_val_for(T);
-                        {{type,T},{array,L}} -> N++"="++get_defalt_val_for({array,T,L})                             
-                        end end, Items),",").
+    string:join(lists:map(fun record_field_from_item/1, Items),",").
 
 get_defalt_val_for({array, Type, any}) -> "[]";
 get_defalt_val_for({array, Type, Array_L}) -> "[ "++get_defalt_val_for(Type)++" || _ <- lists:seq(1,"++Array_L++")]";
 get_defalt_val_for(char) -> "0";
 get_defalt_val_for(uint8) -> "0";
+get_defalt_val_for(uint16) -> "0";
 get_defalt_val_for(uint32) -> "0";
+get_defalt_val_for(uint64) -> "0";
 get_defalt_val_for(int8) -> "0";
+get_defalt_val_for(int16) -> "0";
 get_defalt_val_for(int32) -> "0";
 get_defalt_val_for(int64) -> "0";
 get_defalt_val_for(float32) -> "0.0";
@@ -183,11 +194,20 @@ type_code(_,VarName,char) -> VarName++":8/little";
 type_code(output,VarName,uint8) -> VarName;
 type_code(_,VarName,uint8) -> VarName++":8/little";
 
+type_code(output,VarName,uint16) -> VarName;
+type_code(_,VarName,uint16) -> VarName++":16/little";
+
 type_code(output,VarName,uint32) -> VarName;
 type_code(_,VarName,uint32) -> VarName++":32/little";
 
+type_code(output,VarName,uint64) -> VarName;
+type_code(_,VarName,uint64) -> VarName++":64/little";
+
 type_code(output,VarName,int8) -> VarName;
 type_code(_,VarName,int8) -> VarName++":8/signed-little";
+
+type_code(output,VarName,int16) -> VarName;
+type_code(_,VarName,int16) -> VarName++":16/signed-little";
 
 type_code(output,VarName,int32) -> VarName;
 type_code(_,VarName,int32) -> VarName++":32/signed-little";
