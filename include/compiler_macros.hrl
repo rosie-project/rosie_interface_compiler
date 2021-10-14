@@ -1,32 +1,29 @@
 -ifndef(COMPILER_MACROS_HRL).
+
 -define(COMPILER_MACROS_HRL, true).
-
-
 -define(GEN_CODE_DIR, "_rosie").
-
-
--define(ROS2_STATIC_PRIMITIVES, [
-    bool,
-    byte,
-    char,
-    float32, float64,
-    int8, uint8,
-    int16, uint16,
-    int32, uint32,
-    int64, uint64
-]).
-
+-define(ROS2_STATIC_PRIMITIVES,
+        [bool,
+         byte,
+         char,
+         float32,
+         float64,
+         int8,
+         uint8,
+         int16,
+         uint16,
+         int32,
+         uint32,
+         int64,
+         uint64]).
 -define(ROS2_PRIMITIVES, [string | ?ROS2_STATIC_PRIMITIVES]).
-
 -define(BIN_TO_BIN_LIST_CODE,
-"% When there is an array of elements of base types is usefull to break the binary in a list of sub binaries
+        "% When there is an array of elements of base types is usefull to break the binary in a list of sub binaries
 break_binary(Bin,Length,TypeL) ->
         lists:map( fun erlang:list_to_binary/1, lists:map(fun(N) -> lists:sublist(binary:bin_to_list(Bin),N*TypeL div 8 - (TypeL div 8 - 1), TypeL div 8) end,lists:seq(1,Length))).
-"
-).
-
+").
 -define(PARSE_N_TIMES_CODE,
-"% The payload is parsed a number of Times with the specified Module, all the binary left is returned.
+        "% The payload is parsed a number of Times with the specified Module, all the binary left is returned.
 % this function is used to parse binary arrays into erlang lists
 parse_n_times(_, 0, Payload, List) -> 
         {lists:reverse(List), Payload};
