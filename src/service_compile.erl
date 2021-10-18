@@ -39,23 +39,27 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Repl
     IncludedHeaders = rosie_utils:produce_includes(PkgName, Request ++ Reply),
 
     {RequestInput, RequestOutput, SerializerRequest, DeserializerRequest} =
-        rosie_utils:produce_in_out(PkgName,Request),
-    RequestRecordData = rosie_utils:produce_record_def(PkgName,Request),
+        rosie_utils:produce_in_out(PkgName, Request),
+    RequestRecordData = rosie_utils:produce_record_def(PkgName, Request),
 
     {ReplyInput, ReplyOutput, SerializerReply, DeserializerReply} =
-        rosie_utils:produce_in_out(PkgName,Reply),
-    ReplyRecordData = rosie_utils:produce_record_def(PkgName,Reply),
+        rosie_utils:produce_in_out(PkgName, Reply),
+    ReplyRecordData = rosie_utils:produce_record_def(PkgName, Reply),
     % string of code as output
-    {PkgName ++ "_" ++InterfaceName ++ "_srv",
+    {PkgName ++ "_" ++ InterfaceName ++ "_srv",
      "-module("
-     ++ PkgName ++ "_" ++ InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_srv).
 
 -export([get_name/0, get_type/0, serialize_request/3, serialize_reply/3, parse_request/1, parse_reply/1]).
 
 % self include
 -include(\""
-     ++ PkgName ++ "_" ++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_srv.hrl\").
 
 % GENERAL
@@ -103,10 +107,12 @@ get_type() ->
      ++ "
 % CLIENT
 serialize_request(Client_ID, RequestNumber, #"
-     ++ PkgName++"_"++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_rq{"
      ++ RequestInput
-     ++ "}) -> 
+     ++ "}) ->
         <<Client_ID:8/binary, RequestNumber:64/little"
      ++ case SerializerRequest of
             [] ->
@@ -126,17 +132,21 @@ parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) -
         end
      ++ "
         { Client_ID, RequestNumber, #"
-     ++ PkgName++"_"++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_rp{"
      ++ ReplyOutput
      ++ "} }.
 
-% SERVER        
+% SERVER
 serialize_reply(Client_ID, RequestNumber, #"
-     ++ PkgName++"_"++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_rp{"
      ++ ReplyInput
-     ++ "}) -> 
+     ++ "}) ->
         <<Client_ID:8/binary, RequestNumber:64/little, "
      ++ SerializerReply
      ++ ">>.
@@ -151,7 +161,9 @@ parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>)
         end
      ++ "
         { Client_ID, RequestNumber, #"
-     ++ PkgName++"_"++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_rq{"
      ++ RequestOutput
      ++ "} }.
@@ -174,12 +186,16 @@ parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>)
      ++ "
 
 -record("
-     ++ PkgName++"_"++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_rq,{"
      ++ RequestRecordData
      ++ "}).
 -record("
-     ++ PkgName++"_"++InterfaceName
+     ++ PkgName
+     ++ "_"
+     ++ InterfaceName
      ++ "_rp,{"
      ++ ReplyRecordData
      ++ "}).

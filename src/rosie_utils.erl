@@ -86,7 +86,7 @@ produce_defines(Constants) ->
 
 alignement_for_type({array, _, any}) ->
     "0";
-alignement_for_type({array, Type, L}) ->
+alignement_for_type({array, {Pkg,Type}, L}) ->
     case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             TypeSize = list_to_integer(get_size_of_base_type(Type)) * list_to_integer(L),
@@ -99,7 +99,7 @@ alignement_for_type({array, Type, L}) ->
         false ->
             "0"
     end;
-alignement_for_type(Type) ->
+alignement_for_type({Pkg,Type}) ->
     case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             TypeSize = list_to_integer(get_size_of_base_type(Type)),
@@ -494,7 +494,7 @@ parse_code(VarName, {Pkg, T}, Index) ->
             "<< "
             ++ type_code(deserialize, VarName, {Pkg, T})
             ++ ",_:"
-            ++ alignement_for_type(T)
+            ++ alignement_for_type({Pkg, T})
             ++ ",Payload_"
             ++ integer_to_list(Index)
             ++ "/binary>> =  Payload_"
