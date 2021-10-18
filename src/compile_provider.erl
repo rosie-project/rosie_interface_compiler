@@ -77,8 +77,8 @@ compile_action(PkgName, Source, OutDir) ->
     {ok, {ActionName, ActionModule, ActionHeader, Goal_srv, Result_srv, Feedback_msg}} =
         action_compile:file(PkgName, Source),
 
-    write_file(OutDir, ActionName ++ "_action.erl", ActionModule),
-    write_file(OutDir, ActionName ++ "_action.hrl", ActionHeader),
+    write_file(OutDir, PkgName ++ "_" ++ ActionName ++ "_action.erl", ActionModule),
+    write_file(OutDir, PkgName ++ "_" ++ ActionName ++ "_action.hrl", ActionHeader),
 
     OutDirMeta = filename:join([OutDir, "actions", ActionName]),
 

@@ -39,14 +39,16 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
     Name = filename:basename(Filename, ".msg"),
     InterfaceName =
         string:lowercase(ActionName) ++ rosie_utils:file_name_to_interface_name(Name),
-    {Input, Output, Serializer, Deserializer} = rosie_utils:produce_in_out(Items),
+    {Input, Output, Serializer, Deserializer} = rosie_utils:produce_in_out(PkgName, Items),
     IncludedHeaders = rosie_utils:produce_includes(PkgName, Items),
-    HEADER_DEF = string:to_upper(InterfaceName ++ "_msg" ++ "_hrl"),
-    RecordData = rosie_utils:produce_record_def(Items),
+    HEADER_DEF = string:to_upper(PkgName ++ "_" ++ InterfaceName ++ "_msg" ++ "_hrl"),
+    RecordData = rosie_utils:produce_record_def(PkgName, Items),
     % string of code as output
-    {InterfaceName ++ "_msg",
+    {PkgName ++ "_" ++ InterfaceName ++ "_msg",
      % .erl
      "-module("
+     ++ PkgName
+     ++ "_"
      ++ InterfaceName
      ++ "_msg).
 
@@ -54,6 +56,8 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
 
 % self include
 -include(\""
+     ++ PkgName
+     ++ "_"
      ++ InterfaceName
      ++ "_msg.hrl\").
 
@@ -69,10 +73,12 @@ get_type() ->
      ++ "\".
 
 serialize(#"
+     ++ PkgName
+     ++ "_"
      ++ InterfaceName
      ++ "{"
      ++ Input
-     ++ "}) -> 
+     ++ "}) ->
         <<"
      ++ Serializer
      ++ ">>.
@@ -102,6 +108,8 @@ parse(Payload_0) ->
         end
      ++ "
         ParseResult = #"
+     ++ PkgName
+     ++ "_"
      ++ InterfaceName
      ++ "{"
      ++ Output
@@ -128,6 +136,8 @@ parse(Payload_0) ->
      ++ "
 
 -record("
+     ++ PkgName
+     ++ "_"
      ++ InterfaceName
      ++ ",{"
      ++ RecordData

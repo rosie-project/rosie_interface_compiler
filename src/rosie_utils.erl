@@ -3,8 +3,8 @@
 -include_lib("include/compiler_macros.hrl").
 
 -export([file_name_to_interface_name/1, produce_includes/2, produce_defines/1,
-         produce_in_out/1, get_size_of_base_type/1, get_defalt_val_for/1, produce_record_def/1,
-         type_code/3, parse_code/3, items_contain_usertyped_arrays/1, items_contain_std_arrays/1]).
+         produce_in_out/2, get_size_of_base_type/1, produce_record_def/2, type_code/3,
+         parse_code/3, items_contain_usertyped_arrays/1, items_contain_std_arrays/1]).
 
                                               %get_bitsizes/1,
 
@@ -59,6 +59,8 @@ produce_includes(PkgName, Items) ->
                      "-include_lib(\""
                      ++ PkgName
                      ++ "/src/_rosie/"
+                     ++ PkgName
+                     ++ "_"
                      ++ file_name_to_interface_name(T)
                      ++ "_msg.hrl\").\n"
                   end,
@@ -68,6 +70,8 @@ produce_includes(PkgName, Items) ->
                      "-include_lib(\""
                      ++ Pkg
                      ++ "/src/_rosie/"
+                     ++ Pkg
+                     ++ "_"
                      ++ file_name_to_interface_name(T)
                      ++ "_msg.hrl\").\n"
                   end,
@@ -109,7 +113,7 @@ alignement_for_type(Type) ->
             "0"
     end.
 
-produce_in_out(DataList) ->
+produce_in_out(PkgName, DataList) ->
     VarNames =
         lists:map(fun ({_, {{name, N}, _}}) ->
                           N;
@@ -120,10 +124,14 @@ produce_in_out(DataList) ->
     VarTypes =
         lists:map(fun({TypeToken, _}) ->
                      case TypeToken of
+                         {type, {ExtPkg, T}} ->
+                             {ExtPkg, T};
                          {type, T} ->
-                             T;
+                             {PkgName, T};
+                         {{type, {ExtPkg, T}}, {array, L}} ->
+                             {array, {ExtPkg, T}, L};
                          {{type, T}, {array, L}} ->
-                             {array, T, L}
+                             {array, {PkgName, T}, L}
                      end
                   end,
                   DataList),
@@ -149,10 +157,7 @@ produce_in_out(DataList) ->
     SerializerCode =
         string:join(
             lists:map(fun({T, InputVar}) ->
-                         " "
-                         ++ rosie_utils:type_code(serialize, InputVar, T)
-                         ++ ",0:"
-                         ++ alignement_for_type(T)
+                         " " ++ rosie_utils:type_code(serialize, InputVar, T) ++ ",0:" ++ alignement_for_type(T)
                       end,
                       lists:zip(VarTypes, InputVars)),
             ","),
@@ -210,52 +215,52 @@ get_size_of_base_type(float64) ->
 get_size_of_base_type(string) ->
     "0".
 
-record_field_from_item({TypeToken, {{name, N}, {value, DEFAULT}}}) ->
+record_field_from_item(PkgName, {TypeToken, {{name, N}, {value, DEFAULT}}}) ->
     N ++ "=" ++ DEFAULT;
-record_field_from_item({TypeToken, {name, N}}) ->
+record_field_from_item(PkgName, {TypeToken, {name, N}}) ->
     case TypeToken of
         {type, T} ->
-            N ++ "=" ++ get_defalt_val_for(T);
+            N ++ "=" ++ get_defalt_val_for(PkgName, T);
         {{type, T}, {array, L}} ->
-            N ++ "=" ++ get_defalt_val_for({array, T, L})
+            N ++ "=" ++ get_defalt_val_for(PkgName, {array, T, L})
     end.
 
-produce_record_def(Items) ->
+produce_record_def(PkgName, Items) ->
     string:join(
-        lists:map(fun record_field_from_item/1, Items), ",").
+        lists:map(fun(I) -> record_field_from_item(PkgName, I) end, Items), ",").
 
-get_defalt_val_for({array, Type, any}) ->
+get_defalt_val_for(_, {array, Type, any}) ->
     "[]";
-get_defalt_val_for({array, Type, Array_L}) ->
-    "[ " ++ get_defalt_val_for(Type) ++ " || _ <- lists:seq(1," ++ Array_L ++ ")]";
-get_defalt_val_for(char) ->
+get_defalt_val_for(LocalPkg, {array, Type, Array_L}) ->
+    "[ " ++ get_defalt_val_for(LocalPkg, Type) ++ " || _ <- lists:seq(1," ++ Array_L ++ ")]";
+get_defalt_val_for(_, char) ->
     "0";
-get_defalt_val_for(uint8) ->
+get_defalt_val_for(_, uint8) ->
     "0";
-get_defalt_val_for(uint16) ->
+get_defalt_val_for(_, uint16) ->
     "0";
-get_defalt_val_for(uint32) ->
+get_defalt_val_for(_, uint32) ->
     "0";
-get_defalt_val_for(uint64) ->
+get_defalt_val_for(_, uint64) ->
     "0";
-get_defalt_val_for(int8) ->
+get_defalt_val_for(_, int8) ->
     "0";
-get_defalt_val_for(int16) ->
+get_defalt_val_for(_, int16) ->
     "0";
-get_defalt_val_for(int32) ->
+get_defalt_val_for(_, int32) ->
     "0";
-get_defalt_val_for(int64) ->
+get_defalt_val_for(_, int64) ->
     "0";
-get_defalt_val_for(float32) ->
+get_defalt_val_for(_, float32) ->
     "0.0";
-get_defalt_val_for(float64) ->
+get_defalt_val_for(_, float64) ->
     "0.0";
-get_defalt_val_for(string) ->
+get_defalt_val_for(_, string) ->
     "\"\"";
-get_defalt_val_for({_, UserType}) ->
-    "#" ++ file_name_to_interface_name(UserType) ++ "{}";
-get_defalt_val_for(UserType) ->
-    "#" ++ file_name_to_interface_name(UserType) ++ "{}".
+get_defalt_val_for(_, {ExtPkg, UserType}) ->
+    "#" ++ ExtPkg ++ "_" ++ file_name_to_interface_name(UserType) ++ "{}";
+get_defalt_val_for(LocalPkg, UserType) ->
+    "#" ++ LocalPkg ++ "_" ++ file_name_to_interface_name(UserType) ++ "{}".
 
 check(T) ->
     T /= char.
@@ -263,13 +268,13 @@ check(T) ->
 type_code(serialize, VarName, {array, T, any}) ->
     "(length("
     ++ VarName
-    ++ ")):32/little, 
+    ++ ")):32/little,
     (list_to_binary(lists:map(fun (E) -> <<"
     ++ type_code(serialize, "E", T)
     ++ ">> end,"
     ++ VarName
     ++ ")))/binary";
-type_code(deserialize, VarName, {array, T, any}) ->
+type_code(deserialize, VarName, {array, {_, T}, any}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             VarName
@@ -283,11 +288,11 @@ type_code(deserialize, VarName, {array, T, any}) ->
         false ->
             VarName
     end;
-type_code(output, VarName, {array, T, any}) ->
+type_code(output, VarName, {array, {Pkg, T}, any}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             "[ E || <<"
-            ++ type_code(deserialize, "E", T)
+            ++ type_code(deserialize, "E", {Pkg, T})
             ++ ">> <- break_binary("
             ++ VarName
             ++ ","
@@ -305,14 +310,14 @@ type_code(serialize, VarName, {array, T, L}) ->
     ++ ">> end,"
     ++ VarName
     ++ ")))/binary";
-type_code(deserialize, VarName, {array, T, L}) ->
+type_code(deserialize, VarName, {array, {_, T}, L}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             VarName ++ ":(" ++ L ++ "*" ++ get_size_of_base_type(T) ++ " div 8)/binary";
         false ->
             VarName
     end;
-type_code(output, VarName, {array, T, L}) ->
+type_code(output, VarName, {array, {_, T}, L}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("
@@ -327,51 +332,51 @@ type_code(output, VarName, {array, T, L}) ->
         false ->
             VarName
     end;
-type_code(output, VarName, char) ->
+type_code(output, VarName, {_, char}) ->
     VarName;
-type_code(_, VarName, char) ->
+type_code(_, VarName, {_, char}) ->
     VarName ++ ":8/little";
-type_code(output, VarName, uint8) ->
+type_code(output, VarName, {_, uint8}) ->
     VarName;
-type_code(_, VarName, uint8) ->
+type_code(_, VarName, {_, uint8}) ->
     VarName ++ ":8/little";
-type_code(output, VarName, uint16) ->
+type_code(output, VarName, {_, uint16}) ->
     VarName;
-type_code(_, VarName, uint16) ->
+type_code(_, VarName, {_, uint16}) ->
     VarName ++ ":16/little";
-type_code(output, VarName, uint32) ->
+type_code(output, VarName, {_, uint32}) ->
     VarName;
-type_code(_, VarName, uint32) ->
+type_code(_, VarName, {_, uint32}) ->
     VarName ++ ":32/little";
-type_code(output, VarName, uint64) ->
+type_code(output, VarName, {_, uint64}) ->
     VarName;
-type_code(_, VarName, uint64) ->
+type_code(_, VarName, {_, uint64}) ->
     VarName ++ ":64/little";
-type_code(output, VarName, int8) ->
+type_code(output, VarName, {_, int8}) ->
     VarName;
-type_code(_, VarName, int8) ->
+type_code(_, VarName, {_, int8}) ->
     VarName ++ ":8/signed-little";
-type_code(output, VarName, int16) ->
+type_code(output, VarName, {_, int16}) ->
     VarName;
-type_code(_, VarName, int16) ->
+type_code(_, VarName, {_, int16}) ->
     VarName ++ ":16/signed-little";
-type_code(output, VarName, int32) ->
+type_code(output, VarName, {_, int32}) ->
     VarName;
-type_code(_, VarName, int32) ->
+type_code(_, VarName, {_, int32}) ->
     VarName ++ ":32/signed-little";
-type_code(output, VarName, int64) ->
+type_code(output, VarName, {_, int64}) ->
     VarName;
-type_code(_, VarName, int64) ->
+type_code(_, VarName, {_, int64}) ->
     VarName ++ ":64/signed-little";
-type_code(output, VarName, float32) ->
+type_code(output, VarName, {_, float32}) ->
     VarName;
-type_code(_, VarName, float32) ->
+type_code(_, VarName, {_, float32}) ->
     VarName ++ ":32/float-little";
-type_code(output, VarName, float64) ->
+type_code(output, VarName, {_, float64}) ->
     VarName;
-type_code(_, VarName, float64) ->
+type_code(_, VarName, {_, float64}) ->
     VarName ++ ":64/float-little";
-type_code(serialize, VarName, string) ->
+type_code(serialize, VarName, {_, string}) ->
     "(length("
     ++ VarName
     ++ ")+1):32/little,(list_to_binary("
@@ -379,7 +384,7 @@ type_code(serialize, VarName, string) ->
     ++ "))/binary,0:((4 - (length("
     ++ VarName
     ++ ") rem 4)) * 8)";
-type_code(deserialize, VarName, string) ->
+type_code(deserialize, VarName, {_, string}) ->
     VarName
     ++ "_L:32/little, "
     ++ VarName
@@ -388,27 +393,19 @@ type_code(deserialize, VarName, string) ->
     ++ "_L-1)/binary,_:(4 -("
     ++ VarName
     ++ "_L-1) rem 4)/binary";
-type_code(output, VarName, string) ->
+type_code(output, VarName, {_, string}) ->
     "binary_to_list(" ++ VarName ++ ")";
-type_code(serialize, VarName, {_, USER_TYPE}) ->
+type_code(serialize, VarName, {Pkg, USER_TYPE}) ->
     "("
+    ++ Pkg
+    ++ "_"
     ++ file_name_to_interface_name(USER_TYPE)
     ++ "_msg:serialize("
     ++ VarName
     ++ "))/binary";
-type_code(deserialize, VarName, {_, USER_TYPE}) ->
-    VarName ++ ":(?" ++ USER_TYPE ++ "_bitsize)";
+type_code(deserialize, VarName, {Pkg, USER_TYPE}) ->
+    VarName ++ ":(?" ++ Pkg ++ "_" ++ USER_TYPE ++ "_bitsize)";
 type_code(output, VarName, {_, USER_TYPE}) ->
-    VarName;
-type_code(serialize, VarName, USER_TYPE) ->
-    "("
-    ++ file_name_to_interface_name(USER_TYPE)
-    ++ "_msg:serialize("
-    ++ VarName
-    ++ "))/binary";
-type_code(deserialize, VarName, USER_TYPE) ->
-    VarName ++ ":(?" ++ USER_TYPE ++ "_bitsize)";
-type_code(output, VarName, USER_TYPE) ->
     VarName.
 
 parse_code(VarName, {string, any}, Index) ->
@@ -436,11 +433,11 @@ parse_code(VarName, {string, L}, Index) ->
     ++ "} = parse_n_times(string, L, Str_"
     ++ integer_to_list(Index)
     ++ ")";
-parse_code(VarName, {array, T, any}, Index) ->
+parse_code(VarName, {array, {Pkg, T}, any}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
             "<<"
-            ++ type_code(deserialize, VarName, {array, T, any})
+            ++ type_code(deserialize, VarName, {array, {Pkg, T}, any})
             ++ ", Payload_"
             ++ integer_to_list(Index)
             ++ "/binary>> = Payload_"
@@ -458,6 +455,8 @@ parse_code(VarName, {array, T, any}, Index) ->
             ++ ", Payload_"
             ++ integer_to_list(Index)
             ++ "} = parse_n_times("
+            ++ Pkg
+            ++ "_"
             ++ file_name_to_interface_name(T)
             ++ "_msg, "
             ++ VarName
@@ -465,11 +464,11 @@ parse_code(VarName, {array, T, any}, Index) ->
             ++ integer_to_list(Index)
             ++ ")"
     end;
-parse_code(VarName, {array, T, L}, Index) ->
+parse_code(VarName, {array, {Pkg, T}, L}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
             "<<"
-            ++ type_code(deserialize, VarName, {array, T, L})
+            ++ type_code(deserialize, VarName, {array, {Pkg, T}, L})
             ++ ", Payload_"
             ++ integer_to_list(Index)
             ++ "/binary>> = Payload_"
@@ -480,6 +479,8 @@ parse_code(VarName, {array, T, L}, Index) ->
             ++ ", Payload_"
             ++ integer_to_list(Index)
             ++ "} = parse_n_times("
+            ++ Pkg
+            ++ "_"
             ++ file_name_to_interface_name(T)
             ++ "_msg, "
             ++ L
@@ -487,21 +488,11 @@ parse_code(VarName, {array, T, L}, Index) ->
             ++ integer_to_list(Index - 1)
             ++ ")"
     end;
-parse_code(VarName, {_, T}, Index) ->
-    "{"
-    ++ VarName
-    ++ ", Payload_"
-    ++ integer_to_list(Index)
-    ++ "} = "
-    ++ file_name_to_interface_name(T)
-    ++ "_msg:parse(Payload_"
-    ++ integer_to_list(Index - 1)
-    ++ ")";
-parse_code(VarName, T, Index) ->
+parse_code(VarName, {Pkg, T}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
             "<< "
-            ++ type_code(deserialize, VarName, T)
+            ++ type_code(deserialize, VarName, {Pkg, T})
             ++ ",_:"
             ++ alignement_for_type(T)
             ++ ",Payload_"
@@ -514,6 +505,8 @@ parse_code(VarName, T, Index) ->
             ++ ", Payload_"
             ++ integer_to_list(Index)
             ++ "} = "
+            ++ Pkg
+            ++ "_"
             ++ file_name_to_interface_name(T)
             ++ "_msg:parse(Payload_"
             ++ integer_to_list(Index - 1)
