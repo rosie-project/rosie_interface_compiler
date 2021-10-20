@@ -14,16 +14,18 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider =
-        providers:create([{name, ?PROVIDER},
-                          {namespace, ?NAMESPACE},
-                          {module, ?MODULE},
-                          {bare, true},
-                          {deps, ?DEPS},
-                          {example, "rebar3 rosie compile"},
-                          {opts, []},
-                          {short_desc, "Compile ros2 messages into erl modules."},
-                          {desc,
-                           "Compiler plugin to automate compilation of .msg .srv and .action files for ROSIE"}]),
+        providers:create([
+            {name, ?PROVIDER},
+            {namespace, ?NAMESPACE},
+            {module, ?MODULE},
+            {bare, true},
+            {deps, ?DEPS},
+            {example, "rebar3 rosie compile"},
+            {opts, []},
+            {short_desc, "Compile ros2 messages into erl modules."},
+            {desc,
+                "Compiler plugin to automate compilation of .msg .srv and .action files for ROSIE"}
+        ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
@@ -35,15 +37,17 @@ do(State) ->
             AppInfo ->
                 [AppInfo]
         end,
-    [begin
-         Opts = rebar_app_info:opts(AppInfo),
-         AppName = binary_to_list(rebar_app_info:name(AppInfo)),
-         AppDir = rebar_app_info:dir(AppInfo),
-         compile_actions(Opts, AppName, AppDir),
-         compile_services(Opts, AppName, AppDir),
-         compile_messages(Opts, AppName, AppDir)
-     end
-     || AppInfo <- Apps],
+    [
+        begin
+            Opts = rebar_app_info:opts(AppInfo),
+            AppName = binary_to_list(rebar_app_info:name(AppInfo)),
+            AppDir = rebar_app_info:dir(AppInfo),
+            compile_actions(Opts, AppName, AppDir),
+            compile_services(Opts, AppName, AppDir),
+            compile_messages(Opts, AppName, AppDir)
+        end
+     || AppInfo <- Apps
+    ],
 
     {ok, State}.
 
@@ -90,21 +94,27 @@ compile_action(PkgName, Source, OutDir) ->
     ActionfileName = filename:basename(Source, ".action"),
 
     %types require package name
-    compile(PkgName,
-            ActionfileName,
-            filename:join([OutDirMeta, "SendGoal.srv"]),
-            OutDir,
-            service_compile),
-    compile(PkgName,
-            ActionfileName,
-            filename:join([OutDirMeta, "GetResult.srv"]),
-            OutDir,
-            service_compile),
-    compile(PkgName,
-            ActionfileName,
-            filename:join([OutDirMeta, "FeedbackMessage.msg"]),
-            OutDir,
-            message_compile).
+    compile(
+        PkgName,
+        ActionfileName,
+        filename:join([OutDirMeta, "SendGoal.srv"]),
+        OutDir,
+        service_compile
+    ),
+    compile(
+        PkgName,
+        ActionfileName,
+        filename:join([OutDirMeta, "GetResult.srv"]),
+        OutDir,
+        service_compile
+    ),
+    compile(
+        PkgName,
+        ActionfileName,
+        filename:join([OutDirMeta, "FeedbackMessage.msg"]),
+        OutDir,
+        message_compile
+    ).
 
 compile(PkgName, ActionName, Source, OutDir, CompilerModule) ->
     % rebar_api:info("ROSIE: called for: ~p\n",[Source]),
@@ -138,8 +148,10 @@ clean_before_test() ->
 
 compile_action_test() ->
     Files = rebar_utils:find_files("test_interfaces/action", ".*\\.action\$"),
-    [compile_action("test_interfaces", F, "test_interfaces/src/" ++ ?GEN_CODE_DIR)
-     || F <- Files],
+    [
+        compile_action("test_interfaces", F, "test_interfaces/src/" ++ ?GEN_CODE_DIR)
+     || F <- Files
+    ],
 
     % MsgFiles = rebar_utils:find_files("test_interfaces/_rosie/actions",".*\\.msg\$"),
     % [compile("test_interfaces" ,F, "test_interfaces/"++?GEN_CODE_DIR++"/actions",message_compile) || F <- MsgFiles],
@@ -148,32 +160,48 @@ compile_action_test() ->
     ModuleFiles =
         rebar_utils:find_files("test_interfaces/_rosie/actions", ".*((_msg)|(_srv))\\.erl\$"),
     [compile:file(M, [binary]) || M <- ModuleFiles],
-    [check_compilation_result(R)
-     || R
-            <- [compile:file(M, [verbose, report_errors, report_warnings, binary])
-                || M <- ModuleFiles]].
+    [
+        check_compilation_result(R)
+     || R <-
+            [
+                compile:file(M, [verbose, report_errors, report_warnings, binary])
+             || M <- ModuleFiles
+            ]
+    ].
 
 compile_msg_test() ->
     Files = rebar_utils:find_files("test_interfaces/msg", ".*\\.msg\$"),
-    [compile("test_interfaces", F, "test_interfaces/src/" ++ ?GEN_CODE_DIR, message_compile)
-     || F <- Files],
+    [
+        compile("test_interfaces", F, "test_interfaces/src/" ++ ?GEN_CODE_DIR, message_compile)
+     || F <- Files
+    ],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie", ".*_msg\\.erl\$"),
     [compile:file(M, [binary]) || M <- ModuleFiles],
-    [check_compilation_result(R)
-     || R
-            <- [compile:file(M, [verbose, report_errors, report_warnings, binary])
-                || M <- ModuleFiles]].
+    [
+        check_compilation_result(R)
+     || R <-
+            [
+                compile:file(M, [verbose, report_errors, report_warnings, binary])
+             || M <- ModuleFiles
+            ]
+    ].
 
 compile_srv_test() ->
     Files = rebar_utils:find_files("test_interfaces/srv", ".*\\.srv\$"),
-    [compile("test_interfaces", F, "test_interfaces/src/" ++ ?GEN_CODE_DIR, service_compile)
-     || F <- Files],
+    [
+        compile("test_interfaces", F, "test_interfaces/src/" ++ ?GEN_CODE_DIR, service_compile)
+     || F <- Files
+    ],
     ModuleFiles = rebar_utils:find_files("test_interfaces/_rosie", ".*_srv\\.erl\$"),
     [compile:file(M, [binary]) || M <- ModuleFiles],
-    [check_compilation_result(R)
-     || R
-            <- [compile:file(M, [verbose, report_errors, report_warnings, binary])
-                || M <- ModuleFiles]].
+    [
+        check_compilation_result(R)
+     || R <-
+            [
+                compile:file(M, [verbose, report_errors, report_warnings, binary])
+             || M <- ModuleFiles
+            ]
+    ].
 
 check_compilation_result({ok, _, _}) ->
     ok;

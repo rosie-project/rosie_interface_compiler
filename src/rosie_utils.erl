@@ -2,26 +2,38 @@
 
 -include_lib("include/compiler_macros.hrl").
 
--export([file_name_to_interface_name/1, produce_includes/2, produce_defines/1,
-         produce_in_out/2, get_size_of_base_type/1, produce_record_def/2, type_code/3,
-         parse_code/3, items_contain_usertyped_arrays/1, items_contain_std_arrays/1]).
+-export([
+    file_name_to_interface_name/1,
+    produce_includes/2,
+    produce_defines/1,
+    produce_in_out/2,
+    get_size_of_base_type/1,
+    produce_record_def/2,
+    type_code/3,
+    parse_code/3,
+    items_contain_usertyped_arrays/1,
+    items_contain_std_arrays/1
+]).
 
-                                              %get_bitsizes/1,
+%get_bitsizes/1,
 
 file_name_to_interface_name(Name) ->
     Splitted = re:split(Name, "([A-Z])", [{return, list}]),
     Separated =
-        lists:map(fun(S) ->
-                     case string:lowercase(S) /= S of
-                         true ->
-                             "_" ++ S;
-                         false ->
-                             S
-                     end
-                  end,
-                  Splitted),
+        lists:map(
+            fun(S) ->
+                case string:lowercase(S) /= S of
+                    true ->
+                        "_" ++ S;
+                    false ->
+                        S
+                end
+            end,
+            Splitted
+        ),
     string:lowercase(
-        string:trim(Separated, leading, "_")).
+        string:trim(Separated, leading, "_")
+    ).
 
 get_type_from_item({TypeToken, _}) ->
     case TypeToken of
@@ -37,56 +49,60 @@ produce_includes(PkgName, Items) ->
 
     No_duplicates =
         sets:to_list(
-            sets:from_list(UserTypes)),
+            sets:from_list(UserTypes)
+        ),
 
     LocalPkg =
-        lists:filter(fun ({_, _}) ->
-                             false;
-                         (_) ->
-                             true
-                     end,
-                     No_duplicates),
+        lists:filter(
+            fun
+                ({_, _}) ->
+                    false;
+                (_) ->
+                    true
+            end,
+            No_duplicates
+        ),
     ExtPkg =
-        lists:filter(fun ({Pkg, Type}) ->
-                             true;
-                         (_) ->
-                             false
-                     end,
-                     No_duplicates),
+        lists:filter(
+            fun
+                ({Pkg, Type}) ->
+                    true;
+                (_) ->
+                    false
+            end,
+            No_duplicates
+        ),
 
     LocalIncludeLines =
-        lists:map(fun(T) ->
-                     "-include_lib(\""
-                     ++ PkgName
-                     ++ "/src/_rosie/"
-                     ++ PkgName
-                     ++ "_"
-                     ++ file_name_to_interface_name(T)
-                     ++ "_msg.hrl\").\n"
-                  end,
-                  LocalPkg),
+        lists:map(
+            fun(T) ->
+                "-include_lib(\"" ++ PkgName ++ "/src/_rosie/" ++ PkgName ++ "_" ++
+                    file_name_to_interface_name(T) ++ "_msg.hrl\").\n"
+            end,
+            LocalPkg
+        ),
     ExternalIncludeLines =
-        lists:map(fun({Pkg, T}) ->
-                     "-include_lib(\""
-                     ++ Pkg
-                     ++ "/src/_rosie/"
-                     ++ Pkg
-                     ++ "_"
-                     ++ file_name_to_interface_name(T)
-                     ++ "_msg.hrl\").\n"
-                  end,
-                  ExtPkg),
+        lists:map(
+            fun({Pkg, T}) ->
+                "-include_lib(\"" ++ Pkg ++ "/src/_rosie/" ++ Pkg ++ "_" ++
+                    file_name_to_interface_name(T) ++ "_msg.hrl\").\n"
+            end,
+            ExtPkg
+        ),
     lists:flatten(LocalIncludeLines ++ ExternalIncludeLines).
 
 produce_defines(Constants) ->
     string:join(
-        lists:map(fun({_, {macro, N}, {value, V}}) -> "-define(" ++ N ++ ", " ++ V ++ ")." end,
-                  Constants),
-        "\n").
+        lists:map(
+            fun({_, {macro, N}, {value, V}}) -> "-define(" ++ N ++ ", " ++ V ++ ")." end,
+            Constants
+        ),
+        "\n"
+    ).
 
 alignement_for_type({array, _, any}) ->
     "0";
-alignement_for_type({array, {Pkg,Type}, L}) ->
+alignement_for_type({array, {Pkg, Type}, L}) ->
     case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             TypeSize = list_to_integer(get_size_of_base_type(Type)) * list_to_integer(L),
@@ -99,7 +115,7 @@ alignement_for_type({array, {Pkg,Type}, L}) ->
         false ->
             "0"
     end;
-alignement_for_type({Pkg,Type}) ->
+alignement_for_type({Pkg, Type}) ->
     case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
         true ->
             TypeSize = list_to_integer(get_size_of_base_type(Type)),
@@ -115,70 +131,93 @@ alignement_for_type({Pkg,Type}) ->
 
 produce_in_out(PkgName, DataList) ->
     VarNames =
-        lists:map(fun ({_, {{name, N}, _}}) ->
-                          N;
-                      ({_, {name, N}}) ->
-                          N
-                  end,
-                  DataList),
+        lists:map(
+            fun
+                ({_, {{name, N}, _}}) ->
+                    N;
+                ({_, {name, N}}) ->
+                    N
+            end,
+            DataList
+        ),
     VarTypes =
-        lists:map(fun({TypeToken, _}) ->
-                     case TypeToken of
-                         {type, {ExtPkg, T}} ->
-                             {ExtPkg, T};
-                         {type, T} ->
-                             {PkgName, T};
-                         {{type, {ExtPkg, T}}, {array, L}} ->
-                             {array, {ExtPkg, T}, L};
-                         {{type, T}, {array, L}} ->
-                             {array, {PkgName, T}, L}
-                     end
-                  end,
-                  DataList),
+        lists:map(
+            fun({TypeToken, _}) ->
+                case TypeToken of
+                    {type, {ExtPkg, T}} ->
+                        {ExtPkg, T};
+                    {type, T} ->
+                        {PkgName, T};
+                    {{type, {ExtPkg, T}}, {array, L}} ->
+                        {array, {ExtPkg, T}, L};
+                    {{type, T}, {array, L}} ->
+                        {array, {PkgName, T}, L}
+                end
+            end,
+            DataList
+        ),
     InputVars =
-        lists:map(fun ({_, {{name, N}, _}}) ->
-                          N;
-                      ({_, {name, N}}) ->
-                          string:to_upper(N)
-                  end,
-                  DataList),
+        lists:map(
+            fun
+                ({_, {{name, N}, _}}) ->
+                    N;
+                ({_, {name, N}}) ->
+                    string:to_upper(N)
+            end,
+            DataList
+        ),
     InputCode =
         string:join(
-            lists:map(fun({LowName, CapName}) -> " " ++ LowName ++ " = " ++ CapName end,
-                      lists:zip(VarNames, InputVars)),
-            ","),
+            lists:map(
+                fun({LowName, CapName}) -> " " ++ LowName ++ " = " ++ CapName end,
+                lists:zip(VarNames, InputVars)
+            ),
+            ","
+        ),
     OutputCode =
         string:join(
-            lists:map(fun({LowName, CapName, T}) ->
-                         " " ++ LowName ++ " = " ++ rosie_utils:type_code(output, CapName, T)
-                      end,
-                      lists:zip3(VarNames, InputVars, VarTypes)),
-            ","),
+            lists:map(
+                fun({LowName, CapName, T}) ->
+                    " " ++ LowName ++ " = " ++ rosie_utils:type_code(output, CapName, T)
+                end,
+                lists:zip3(VarNames, InputVars, VarTypes)
+            ),
+            ","
+        ),
     SerializerCode =
         string:join(
-            lists:map(fun({T, InputVar}) ->
-                         " " ++ rosie_utils:type_code(serialize, InputVar, T) ++ ",0:" ++ alignement_for_type(T)
-                      end,
-                      lists:zip(VarTypes, InputVars)),
-            ","),
+            lists:map(
+                fun({T, InputVar}) ->
+                    " " ++ rosie_utils:type_code(serialize, InputVar, T) ++ ",0:" ++
+                        alignement_for_type(T)
+                end,
+                lists:zip(VarTypes, InputVars)
+            ),
+            ","
+        ),
     DeserializerCode =
         string:join(
-            lists:map(fun({T, InputVar, Index}) -> rosie_utils:parse_code(InputVar, T, Index) end,
-                      lists:zip3(VarTypes, InputVars, lists:seq(1, length(DataList)))),
-            ",\n\t"),
+            lists:map(
+                fun({T, InputVar, Index}) -> rosie_utils:parse_code(InputVar, T, Index) end,
+                lists:zip3(VarTypes, InputVars, lists:seq(1, length(DataList)))
+            ),
+            ",\n\t"
+        ),
     {InputCode, OutputCode, SerializerCode, DeserializerCode}.
 
 get_bitsizes(Items) ->
     VarTypes =
-        lists:map(fun({TypeToken, _}) ->
-                     case TypeToken of
-                         {type, T} ->
-                             T;
-                         {{type, T}, {array, L}} ->
-                             {T, L}
-                     end
-                  end,
-                  Items),
+        lists:map(
+            fun({TypeToken, _}) ->
+                case TypeToken of
+                    {type, T} ->
+                        T;
+                    {{type, T}, {array, L}} ->
+                        {T, L}
+                end
+            end,
+            Items
+        ),
     get_bitsizes(VarTypes, []).
 
 get_bitsizes([], Sizes) ->
@@ -227,7 +266,8 @@ record_field_from_item(PkgName, {TypeToken, {name, N}}) ->
 
 produce_record_def(PkgName, Items) ->
     string:join(
-        lists:map(fun(I) -> record_field_from_item(PkgName, I) end, Items), ",").
+        lists:map(fun(I) -> record_field_from_item(PkgName, I) end, Items), ","
+    ).
 
 get_defalt_val_for(_, {array, Type, any}) ->
     "[]";
@@ -266,50 +306,28 @@ check(T) ->
     T /= char.
 
 type_code(serialize, VarName, {array, T, any}) ->
-    "(length("
-    ++ VarName
-    ++ ")):32/little,
-    (list_to_binary(lists:map(fun (E) -> <<"
-    ++ type_code(serialize, "E", T)
-    ++ ">> end,"
-    ++ VarName
-    ++ ")))/binary";
+    "(length(" ++ VarName ++ ")):32/little,\n" ++ "(list_to_binary(lists:map(fun (E) -> <<" ++
+        type_code(serialize, "E", T) ++ ">> end," ++ VarName ++ ")))/binary";
 type_code(deserialize, VarName, {array, {_, T}, any}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
-            VarName
-            ++ "_L:32/little, "
-            ++ VarName
-            ++ ":("
-            ++ VarName
-            ++ "_L*"
-            ++ get_size_of_base_type(T)
-            ++ " div 8)/binary";
+            VarName ++ "_L:32/little, " ++ VarName ++ ":(" ++ VarName ++ "_L*" ++
+                get_size_of_base_type(T) ++ " div 8)/binary";
         false ->
             VarName
     end;
 type_code(output, VarName, {array, {Pkg, T}, any}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
-            "[ E || <<"
-            ++ type_code(deserialize, "E", {Pkg, T})
-            ++ ">> <- break_binary("
-            ++ VarName
-            ++ ","
-            ++ VarName
-            ++ "_L,"
-            ++ get_size_of_base_type(T)
-            ++ ")]";
+            "[ E || <<" ++ type_code(deserialize, "E", {Pkg, T}) ++ ">> <- break_binary(" ++ VarName ++
+                "," ++ VarName ++ "_L," ++ get_size_of_base_type(T) ++ ")]";
         false ->
             VarName
     end;
 %static arrays, simple if elem type has fixed length, otherwise parsing needs to be delegated
 type_code(serialize, VarName, {array, T, L}) ->
-    "(list_to_binary(lists:map(fun (E) -> <<"
-    ++ type_code(serialize, "E", T)
-    ++ ">> end,"
-    ++ VarName
-    ++ ")))/binary";
+    "(list_to_binary(lists:map(fun (E) -> <<" ++ type_code(serialize, "E", T) ++ ">> end," ++
+        VarName ++ ")))/binary";
 type_code(deserialize, VarName, {array, {_, T}, L}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
@@ -320,15 +338,9 @@ type_code(deserialize, VarName, {array, {_, T}, L}) ->
 type_code(output, VarName, {array, {_, T}, L}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
-            "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list("
-            ++ VarName
-            ++ "),N*"
-            ++ get_size_of_base_type(T)
-            ++ " div 8,"
-            ++ get_size_of_base_type(T)
-            ++ " div 8) end,lists:seq(1,"
-            ++ L
-            ++ ")))";
+            "lists:flatten( lists:map(fun(N) -> lists:sublist(binary:bin_to_list(" ++ VarName ++
+                "),N*" ++ get_size_of_base_type(T) ++ " div 8," ++ get_size_of_base_type(T) ++
+                " div 8) end,lists:seq(1," ++ L ++ ")))";
         false ->
             VarName
     end;
@@ -377,154 +389,82 @@ type_code(output, VarName, {_, float64}) ->
 type_code(_, VarName, {_, float64}) ->
     VarName ++ ":64/float-little";
 type_code(serialize, VarName, {_, string}) ->
-    "(length("
-    ++ VarName
-    ++ ")+1):32/little,(list_to_binary("
-    ++ VarName
-    ++ "))/binary,0:((4 - (length("
-    ++ VarName
-    ++ ") rem 4)) * 8)";
+    "(length(" ++ VarName ++ ")+1):32/little,(list_to_binary(" ++ VarName ++
+        "))/binary,0:((4 - (length(" ++ VarName ++ ") rem 4)) * 8)";
 type_code(deserialize, VarName, {_, string}) ->
-    VarName
-    ++ "_L:32/little, "
-    ++ VarName
-    ++ ":("
-    ++ VarName
-    ++ "_L-1)/binary,_:(4 -("
-    ++ VarName
-    ++ "_L-1) rem 4)/binary";
+    VarName ++ "_L:32/little, " ++ VarName ++ ":(" ++ VarName ++ "_L-1)/binary,_:(4 -(" ++ VarName ++
+        "_L-1) rem 4)/binary";
 type_code(output, VarName, {_, string}) ->
     "binary_to_list(" ++ VarName ++ ")";
 type_code(serialize, VarName, {Pkg, USER_TYPE}) ->
-    "("
-    ++ Pkg
-    ++ "_"
-    ++ file_name_to_interface_name(USER_TYPE)
-    ++ "_msg:serialize("
-    ++ VarName
-    ++ "))/binary";
+    "(" ++ Pkg ++ "_" ++ file_name_to_interface_name(USER_TYPE) ++ "_msg:serialize(" ++ VarName ++
+        "))/binary";
 type_code(deserialize, VarName, {Pkg, USER_TYPE}) ->
     VarName ++ ":(?" ++ Pkg ++ "_" ++ USER_TYPE ++ "_bitsize)";
 type_code(output, VarName, {_, USER_TYPE}) ->
     VarName.
 
 parse_code(VarName, {string, any}, Index) ->
-    "<<"
-    ++ VarName
-    ++ "_L:32/little, Str_"
-    ++ integer_to_list(Index)
-    ++ "/binary>> = Payload_"
-    ++ integer_to_list(Index - 1)
-    ++ ",\n\t"
-    ++ "{"
-    ++ VarName
-    ++ ", Payload_"
-    ++ integer_to_list(Index)
-    ++ "} = parse_n_times(string, "
-    ++ VarName
-    ++ "_L, Str_"
-    ++ integer_to_list(Index)
-    ++ ")";
+    "<<" ++ VarName ++ "_L:32/little, Str_" ++ integer_to_list(Index) ++ "/binary>> = Payload_" ++
+        integer_to_list(Index - 1) ++ ",\n\t" ++
+        "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(string, " ++
+        VarName ++ "_L, Str_" ++ integer_to_list(Index) ++ ")";
 parse_code(VarName, {string, L}, Index) ->
-    "{"
-    ++ VarName
-    ++ ", Payload_"
-    ++ integer_to_list(Index)
-    ++ "} = parse_n_times(string, L, Str_"
-    ++ integer_to_list(Index)
-    ++ ")";
+    "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(string, L, Str_" ++
+        integer_to_list(Index) ++ ")";
 parse_code(VarName, {array, {Pkg, T}, any}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
-            "<<"
-            ++ type_code(deserialize, VarName, {array, {Pkg, T}, any})
-            ++ ", Payload_"
-            ++ integer_to_list(Index)
-            ++ "/binary>> = Payload_"
-            ++ integer_to_list(Index - 1);
+            "<<" ++
+                type_code(deserialize, VarName, {array, {Pkg, T}, any}) ++ ", Payload_" ++
+                integer_to_list(Index) ++ "/binary>> = Payload_" ++ integer_to_list(Index - 1);
         false ->
-            "<<"
-            ++ VarName
-            ++ "_L:32/little, Array_"
-            ++ integer_to_list(Index)
-            ++ "/binary>> = Payload_"
-            ++ integer_to_list(Index - 1)
-            ++ ",\n\t"
-            ++ "{"
-            ++ VarName
-            ++ ", Payload_"
-            ++ integer_to_list(Index)
-            ++ "} = parse_n_times("
-            ++ Pkg
-            ++ "_"
-            ++ file_name_to_interface_name(T)
-            ++ "_msg, "
-            ++ VarName
-            ++ "_L, Array_"
-            ++ integer_to_list(Index)
-            ++ ")"
+            "<<" ++ VarName ++ "_L:32/little, Array_" ++ integer_to_list(Index) ++
+                "/binary>> = Payload_" ++ integer_to_list(Index - 1) ++ ",\n\t" ++
+                "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(" ++
+                Pkg ++ "_" ++ file_name_to_interface_name(T) ++ "_msg, " ++ VarName ++ "_L, Array_" ++
+                integer_to_list(Index) ++ ")"
     end;
 parse_code(VarName, {array, {Pkg, T}, L}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
-            "<<"
-            ++ type_code(deserialize, VarName, {array, {Pkg, T}, L})
-            ++ ", Payload_"
-            ++ integer_to_list(Index)
-            ++ "/binary>> = Payload_"
-            ++ integer_to_list(Index - 1);
+            "<<" ++ type_code(deserialize, VarName, {array, {Pkg, T}, L}) ++ ", Payload_" ++
+                integer_to_list(Index) ++ "/binary>> = Payload_" ++ integer_to_list(Index - 1);
         false ->
-            "{"
-            ++ VarName
-            ++ ", Payload_"
-            ++ integer_to_list(Index)
-            ++ "} = parse_n_times("
-            ++ Pkg
-            ++ "_"
-            ++ file_name_to_interface_name(T)
-            ++ "_msg, "
-            ++ L
-            ++ ", Payload_"
-            ++ integer_to_list(Index - 1)
-            ++ ")"
+            "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(" ++ Pkg ++
+                "_" ++ file_name_to_interface_name(T) ++ "_msg, " ++ L ++ ", Payload_" ++
+                integer_to_list(Index - 1) ++ ")"
     end;
 parse_code(VarName, {Pkg, T}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
-            "<< "
-            ++ type_code(deserialize, VarName, {Pkg, T})
-            ++ ",_:"
-            ++ alignement_for_type({Pkg, T})
-            ++ ",Payload_"
-            ++ integer_to_list(Index)
-            ++ "/binary>> =  Payload_"
-            ++ integer_to_list(Index - 1);
+            "<< " ++ type_code(deserialize, VarName, {Pkg, T}) ++ ",_:" ++
+                alignement_for_type({Pkg, T}) ++ ",Payload_" ++ integer_to_list(Index) ++
+                "/binary>> =  Payload_" ++ integer_to_list(Index - 1);
         false ->
-            "{"
-            ++ VarName
-            ++ ", Payload_"
-            ++ integer_to_list(Index)
-            ++ "} = "
-            ++ Pkg
-            ++ "_"
-            ++ file_name_to_interface_name(T)
-            ++ "_msg:parse(Payload_"
-            ++ integer_to_list(Index - 1)
-            ++ ")"
+            "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = " ++ Pkg ++ "_" ++
+                file_name_to_interface_name(T) ++ "_msg:parse(Payload_" ++
+                integer_to_list(Index - 1) ++ ")"
     end.
 
 items_contain_usertyped_arrays(Items) ->
-    lists:any(fun ({{{type, T}, {array, _}}, _}) ->
-                      not lists:member(T, ?ROS2_STATIC_PRIMITIVES);
-                  (_) ->
-                      false
-              end,
-              Items).
+    lists:any(
+        fun
+            ({{{type, T}, {array, _}}, _}) ->
+                not lists:member(T, ?ROS2_STATIC_PRIMITIVES);
+            (_) ->
+                false
+        end,
+        Items
+    ).
 
 items_contain_std_arrays(Items) ->
-    lists:any(fun ({{{type, T}, {array, _}}, _}) ->
-                      lists:member(T, ?ROS2_STATIC_PRIMITIVES);
-                  (_) ->
-                      false
-              end,
-              Items).
+    lists:any(
+        fun
+            ({{{type, T}, {array, _}}, _}) ->
+                lists:member(T, ?ROS2_STATIC_PRIMITIVES);
+            (_) ->
+                false
+        end,
+        Items
+    ).

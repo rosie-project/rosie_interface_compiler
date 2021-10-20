@@ -14,15 +14,17 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider =
-        providers:create([{name, ?PROVIDER},
-                          {namespace, ?NAMESPACE},
-                          {module, ?MODULE},
-                          {bare, true},
-                          {deps, ?DEPS},
-                          {example, "rebar3 rosie clean"},
-                          {opts, []},
-                          {short_desc, "Clean up generated modules"},
-                          {desc, ""}]),
+        providers:create([
+            {name, ?PROVIDER},
+            {namespace, ?NAMESPACE},
+            {module, ?MODULE},
+            {bare, true},
+            {deps, ?DEPS},
+            {example, "rebar3 rosie clean"},
+            {opts, []},
+            {short_desc, "Clean up generated modules"},
+            {desc, ""}
+        ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
@@ -34,13 +36,15 @@ do(State) ->
             AppInfo ->
                 [AppInfo]
         end,
-    [begin
-         Opts = rebar_app_info:opts(AppInfo),
-         SearchDir = filename:join([rebar_app_info:dir(AppInfo), "src", ?GEN_CODE_DIR]),
-         FoundFiles = rebar_utils:find_files(SearchDir, ".*\$"),
-         [remove_file(File) || File <- FoundFiles]
-     end
-     || AppInfo <- Apps],
+    [
+        begin
+            Opts = rebar_app_info:opts(AppInfo),
+            SearchDir = filename:join([rebar_app_info:dir(AppInfo), "src", ?GEN_CODE_DIR]),
+            FoundFiles = rebar_utils:find_files(SearchDir, ".*\$"),
+            [remove_file(File) || File <- FoundFiles]
+        end
+     || AppInfo <- Apps
+    ],
 
     {ok, State}.
 

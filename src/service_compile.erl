@@ -23,7 +23,8 @@ gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
             %io:format("~p\n",[Tokens]),
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
-                {ok, Res} ->% print_parsed_info(Res),
+                % print_parsed_info(Res),
+                {ok, Res} ->
                     generate_interface(PkgName, Tag, ActionName, Filename, Res);
                 Else ->
                     io:format("Service Parser failed: ~p\n On tokens : ~p\n", [Else, Tokens])
@@ -46,159 +47,124 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Repl
         rosie_utils:produce_in_out(PkgName, Reply),
     ReplyRecordData = rosie_utils:produce_record_def(PkgName, Reply),
     % string of code as output
-    {PkgName ++ "_" ++ InterfaceName ++ "_srv",
-     "-module("
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_srv).
-
--export([get_name/0, get_type/0, serialize_request/3, serialize_reply/3, parse_request/1, parse_reply/1]).
-
-% self include
--include(\""
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_srv.hrl\").
-
-% GENERAL
-
-get_name() ->
-        \""
-     ++ case ActionName /= "" of
-            true ->
-                string:lowercase(ActionName) ++ "/_action/";
-            false ->
-                ""
-        end
-     ++ rosie_utils:file_name_to_interface_name(Name)
-     ++ "\".
-
-get_type() ->
-        \""
-     ++ PkgName
-     ++ "::"
-     ++ Tag
-     ++ "::dds_::"
-     ++ case ActionName /= "" of
-            true ->
-                ActionName ++ "_";
-            false ->
-                ""
-        end
-     ++ Name
-     ++ "_"
-     ++ "\".
-
-"
-     ++ case rosie_utils:items_contain_usertyped_arrays(Request ++ Reply) of
-            true ->
-                ?PARSE_N_TIMES_CODE; %paste extra code
-            false ->
-                ""
-        end
-     ++ case rosie_utils:items_contain_std_arrays(Request ++ Reply) of
-            true ->
-                ?BIN_TO_BIN_LIST_CODE; %paste extra code
-            false ->
-                ""
-        end
-     ++ "
-% CLIENT
-serialize_request(Client_ID, RequestNumber, #"
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_rq{"
-     ++ RequestInput
-     ++ "}) ->
-        <<Client_ID:8/binary, RequestNumber:64/little"
-     ++ case SerializerRequest of
-            [] ->
-                "";
-            Code ->
-                "," ++ Code
-        end
-     ++ ">>.
-
-parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->
-        "
-     ++ case DeserializerReply of
-            [] ->
-                "";
-            Code ->
-                Code ++ ","
-        end
-     ++ "
-        { Client_ID, RequestNumber, #"
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_rp{"
-     ++ ReplyOutput
-     ++ "} }.
-
-% SERVER
-serialize_reply(Client_ID, RequestNumber, #"
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_rp{"
-     ++ ReplyInput
-     ++ "}) ->
-        <<Client_ID:8/binary, RequestNumber:64/little, "
-     ++ SerializerReply
-     ++ ">>.
-
-parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->
-        "
-     ++ case DeserializerRequest of
-            [] ->
-                "";
-            Code ->
-                Code ++ ","
-        end
-     ++ "
-        { Client_ID, RequestNumber, #"
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_rq{"
-     ++ RequestOutput
-     ++ "} }.
-
-",
-     % .hrl
-     "-ifndef("
-     ++ HEADER_DEF
-     ++ ").
--define("
-     ++ HEADER_DEF
-     ++ ", true).
-
-"
-     ++ IncludedHeaders
-     ++ "
-
-"
-     ++ rosie_utils:produce_defines(Constants)
-     ++ "
-
--record("
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_rq,{"
-     ++ RequestRecordData
-     ++ "}).
--record("
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_rp,{"
-     ++ ReplyRecordData
-     ++ "}).
-
--endif.
-"}.
+    {
+        PkgName ++ "_" ++ InterfaceName ++ "_srv",
+        "-module(" ++
+            PkgName ++
+            "_" ++
+            InterfaceName ++
+            "_srv).\n"
+            "\n"
+            "-export([get_name/0, get_type/0, serialize_request/3, serialize_reply/3, parse_request/1, parse_reply/1]).\n"
+            "\n"
+            "% self include\n"
+            "-include(\"" ++ PkgName ++ "_" ++ InterfaceName ++
+            "_srv.hrl\").\n"
+            "\n"
+            "% GENERAL\n"
+            "\n"
+            "get_name() ->\n"
+            "        \"" ++
+            case ActionName /= "" of
+                true ->
+                    string:lowercase(ActionName) ++ "/_action/";
+                false ->
+                    ""
+            end ++
+            rosie_utils:file_name_to_interface_name(Name) ++
+            "\".\n"
+            "\n"
+            "get_type() ->\n"
+            "        \"" ++ PkgName ++ "::" ++ Tag ++ "::dds_::" ++
+            case ActionName /= "" of
+                true ->
+                    ActionName ++ "_";
+                false ->
+                    ""
+            end ++ Name ++ "_" ++
+            "\".\n"
+            "\n" ++
+            case rosie_utils:items_contain_usertyped_arrays(Request ++ Reply) of
+                true ->
+                    %paste extra code
+                    ?PARSE_N_TIMES_CODE;
+                false ->
+                    ""
+            end ++
+            case rosie_utils:items_contain_std_arrays(Request ++ Reply) of
+                true ->
+                    %paste extra code
+                    ?BIN_TO_BIN_LIST_CODE;
+                false ->
+                    ""
+            end ++
+            "\n"
+            "% CLIENT\n"
+            "serialize_request(Client_ID, RequestNumber, #" ++ PkgName ++ "_" ++ InterfaceName ++
+            "_rq{" ++ RequestInput ++
+            "}) ->\n"
+            "        <<Client_ID:8/binary, RequestNumber:64/little" ++
+            case SerializerRequest of
+                [] ->
+                    "";
+                Code ->
+                    "," ++ Code
+            end ++
+            ">>.\n"
+            "\n"
+            "parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->\n"
+            "        " ++
+            case DeserializerReply of
+                [] ->
+                    "";
+                Code ->
+                    Code ++ ","
+            end ++
+            "\n"
+            "        { Client_ID, RequestNumber, #" ++ PkgName ++ "_" ++ InterfaceName ++ "_rp{" ++
+            ReplyOutput ++
+            "} }.\n"
+            "\n"
+            "% SERVER\n"
+            "serialize_reply(Client_ID, RequestNumber, #" ++ PkgName ++ "_" ++ InterfaceName ++
+            "_rp{" ++ ReplyInput ++
+            "}) ->\n"
+            "        <<Client_ID:8/binary, RequestNumber:64/little, " ++ SerializerReply ++
+            ">>.\n"
+            "\n"
+            "parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->\n"
+            "        " ++
+            case DeserializerRequest of
+                [] ->
+                    "";
+                Code ->
+                    Code ++ ","
+            end ++
+            "\n"
+            "        { Client_ID, RequestNumber, #" ++
+            PkgName ++
+            "_" ++
+            InterfaceName ++
+            "_rq{" ++
+            RequestOutput ++
+            "} }.\n"
+            "\n",
+        % .hrl
+        "-ifndef(" ++ HEADER_DEF ++
+            ").\n"
+            "-define(" ++ HEADER_DEF ++
+            ", true).\n"
+            "\n" ++
+            IncludedHeaders ++
+            "\n"
+            "\n" ++
+            rosie_utils:produce_defines(Constants) ++
+            "\n"
+            "\n"
+            "-record(" ++ PkgName ++ "_" ++ InterfaceName ++ "_rq,{" ++ RequestRecordData ++
+            "}).\n"
+            "-record(" ++ PkgName ++ "_" ++ InterfaceName ++ "_rp,{" ++ ReplyRecordData ++
+            "}).\n"
+            "\n"
+            "-endif.\n"
+    }.

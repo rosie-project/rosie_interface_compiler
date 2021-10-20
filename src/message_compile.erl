@@ -44,104 +44,72 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
     HEADER_DEF = string:to_upper(PkgName ++ "_" ++ InterfaceName ++ "_msg" ++ "_hrl"),
     RecordData = rosie_utils:produce_record_def(PkgName, Items),
     % string of code as output
-    {PkgName ++ "_" ++ InterfaceName ++ "_msg",
-     % .erl
-     "-module("
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_msg).
-
--export([get_type/0, serialize/1, parse/1]).
-
-% self include
--include(\""
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "_msg.hrl\").
-
-get_type() ->
-        \""
-     ++ PkgName
-     ++ "::"
-     ++ Tag
-     ++ "::dds_::"
-     ++ ActionName
-     ++ Name
-     ++ "_"
-     ++ "\".
-
-serialize(#"
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "{"
-     ++ Input
-     ++ "}) ->
-        <<"
-     ++ Serializer
-     ++ ">>.
-
-"
-     ++ case rosie_utils:items_contain_usertyped_arrays(Items) of
-            true ->
-                ?PARSE_N_TIMES_CODE; %paste extra code
-            false ->
-                ""
-        end
-     ++ case rosie_utils:items_contain_std_arrays(Items) of
-            true ->
-                ?BIN_TO_BIN_LIST_CODE; %paste extra code
-            false ->
-                ""
-        end
-     ++ "
-
-parse(Payload_0) ->
-        "
-     ++ case Deserializer of
-            [] ->
-                "";
-            Code ->
-                Code ++ ","
-        end
-     ++ "
-        ParseResult = #"
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ "{"
-     ++ Output
-     ++ "},
-        {ParseResult,Payload_"
-     ++ integer_to_list(length(Items))
-     ++ "}.
-
-",
-     % .hrl NOTE: _bitsize is USELESS, we can't know at compile time the length of a user defined datatype, it could contain dinamic arrays
-     "-ifndef("
-     ++ HEADER_DEF
-     ++ ").
--define("
-     ++ HEADER_DEF
-     ++ ", true).
-
-"
-     ++ IncludedHeaders
-     ++ "
-
-"
-     ++ rosie_utils:produce_defines(Constants)
-     ++ "
-
--record("
-     ++ PkgName
-     ++ "_"
-     ++ InterfaceName
-     ++ ",{"
-     ++ RecordData
-     ++ "}).
-
--endif.
-"}.
+    {
+        PkgName ++ "_" ++ InterfaceName ++ "_msg",
+        % .erl
+        "-module(" ++ PkgName ++ "_" ++ InterfaceName ++
+            "_msg).\n"
+            "\n"
+            "-export([get_type/0, serialize/1, parse/1]).\n"
+            "\n"
+            "% self include\n"
+            "-include(\"" ++ PkgName ++ "_" ++ InterfaceName ++
+            "_msg.hrl\").\n"
+            "\n"
+            "get_type() ->\n"
+            "        \"" ++ PkgName ++ "::" ++ Tag ++ "::dds_::" ++ ActionName ++ Name ++ "_" ++
+            "\".\n"
+            "\n"
+            "serialize(#" ++
+            PkgName ++ "_" ++ InterfaceName ++ "{" ++ Input ++
+            "}) ->\n"
+            "\t<<" ++ Serializer ++
+            ">>.\n"
+            "\n" ++
+            case rosie_utils:items_contain_usertyped_arrays(Items) of
+                true ->
+                    %paste extra code
+                    ?PARSE_N_TIMES_CODE;
+                false ->
+                    ""
+            end ++
+            case rosie_utils:items_contain_std_arrays(Items) of
+                true ->
+                    %paste extra code
+                    ?BIN_TO_BIN_LIST_CODE;
+                false ->
+                    ""
+            end ++
+            "\n"
+            "\n"
+            "parse(Payload_0) ->\n"
+            "        " ++
+            case Deserializer of
+                [] ->
+                    "";
+                Code ->
+                    Code ++ ","
+            end ++
+            "\n"
+            "        ParseResult = #" ++ PkgName ++ "_" ++ InterfaceName ++ "{" ++ Output ++
+            "},\n"
+            "        {ParseResult,Payload_" ++ integer_to_list(length(Items)) ++
+            "}.\n"
+            "\n",
+        % .hrl NOTE: _bitsize is USELESS, we can't know at compile time the length of a user defined datatype, it could contain dinamic arrays
+        "-ifndef(" ++ HEADER_DEF ++
+            ").\n"
+            "-define(" ++ HEADER_DEF ++
+            ", true).\n"
+            "\n" ++
+            IncludedHeaders ++
+            "\n"
+            "\n" ++
+            rosie_utils:produce_defines(Constants) ++
+            "\n"
+            "\n"
+            "-record(" ++ PkgName ++ "_" ++ InterfaceName ++ ",{" ++ RecordData ++
+            "}).\n"
+            "\n"
+            "-endif.\n"
+    }.
