@@ -160,7 +160,7 @@ produce_in_out(PkgName, DataList) ->
         lists:map(
             fun
                 ({_, {{name, N}, _}}) ->
-                    N;
+                    string:to_upper(N);
                 ({_, {name, N}}) ->
                     string:to_upper(N)
             end,
