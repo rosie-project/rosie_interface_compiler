@@ -7,7 +7,7 @@ Rules.
 \[[0-9]+\] : {token, {array, string:trim(TokenChars,both,[$[,$]])}}.
 \[<=[0-9]+\] : {token, {array, any}}. % limited arrays are treated as undefined ones
 \[\] : {token, {array, any}}.
-bool : {token, {type, uint8}}. % bool is same as uint8
+bool : {token, {type, bool}}. % bool is same as uint8
 byte : {token, {type, char}}. % byte is same as char
 char : {token, {type, char}}.
 uint8 : {token, {type, uint8}}.
@@ -29,8 +29,8 @@ string<=[0-9]+ : {token, {type, string}}. % bound string is treated as an infini
 = :  {token, {assignement}}.
 -?[0-9]+\.?[0-9]* : {token,{value, TokenChars}}.
 \".*\" : {token,{value, TokenChars}}.
-false : {token,{value, "0"}}.
-true : {token,{value, "1"}}.
+false : {token,{value, "false"}}.
+true : {token,{value, "true"}}.
 --- : {token, {separator}}.
 [a-z_]+ : {token, {name, TokenChars}}.
 #.* : skip_token. % Comments
