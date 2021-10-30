@@ -10,6 +10,7 @@
     get_size_of_base_type/1,
     produce_record_def/2,
     type_code/3,
+    serialization_code/3,
     parse_code/3,
     items_contain_usertyped_arrays/1,
     items_contain_std_arrays/1
@@ -187,13 +188,10 @@ produce_in_out(PkgName, DataList) ->
     SerializerCode =
         string:join(
             lists:map(
-                fun({T, InputVar}) ->
-                    " " ++ rosie_utils:type_code(serialize, InputVar, T) ++ ",0:" ++
-                        alignement_for_type(T)
-                end,
-                lists:zip(VarTypes, InputVars)
+                fun({T, InputVar, Index}) -> rosie_utils:serialization_code(InputVar, T, Index) end,
+                lists:zip3(VarTypes, InputVars, lists:seq(1, length(DataList)))
             ),
-            ","
+            ",\n\t"
         ),
     DeserializerCode =
         string:join(
@@ -254,7 +252,7 @@ get_size_of_base_type(float32) ->
 get_size_of_base_type(float64) ->
     "64";
 get_size_of_base_type(string) ->
-    "0".
+    get_size_of_base_type(uint32).
 
 record_field_from_item(PkgName, {TypeToken, {{name, N}, {value, DEFAULT}}}) ->
     N ++ "=" ++ DEFAULT;
@@ -306,17 +304,10 @@ get_defalt_val_for(_, {ExtPkg, UserType}) ->
 get_defalt_val_for(LocalPkg, UserType) ->
     "#" ++ LocalPkg ++ "_" ++ file_name_to_interface_name(UserType) ++ "{}".
 
-type_code(serialize, VarName, {array, T, any}) ->
-    "(length(" ++ VarName ++ ")):32/little,\n" ++ "(list_to_binary(lists:map(fun (E) -> <<" ++
-        type_code(serialize, "E", T) ++ ">> end," ++ VarName ++ ")))/binary";
+type_code(serialize, VarName, {array, T, _}) ->
+    "(list_to_binary(lists:map(fun (E) -> <<" ++ type_code(serialize, "E", T) ++ ">> end," ++ VarName ++ ")))/binary";
 type_code(deserialize, VarName, {array, {_, T}, any}) ->
-    case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true ->
-            VarName ++ "_L:32/little, " ++ VarName ++ ":(" ++ VarName ++ "_L*" ++
-                get_size_of_base_type(T) ++ " div 8)/binary";
-        false ->
-            VarName
-    end;
+    VarName ++ "_L:32/little, " ++ VarName ++ ":(" ++ VarName ++ "_L*" ++ get_size_of_base_type(T) ++ " div 8)/binary";
 type_code(output, VarName, {array, {Pkg, T}, any}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
@@ -325,17 +316,9 @@ type_code(output, VarName, {array, {Pkg, T}, any}) ->
         false ->
             VarName
     end;
-%static arrays, simple if elem type has fixed length, otherwise parsing needs to be delegated
-type_code(serialize, VarName, {array, T, L}) ->
-    "(list_to_binary(lists:map(fun (E) -> <<" ++ type_code(serialize, "E", T) ++ ">> end," ++
-        VarName ++ ")))/binary";
+
 type_code(deserialize, VarName, {array, {_, T}, L}) ->
-    case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
-        true ->
-            VarName ++ ":(" ++ L ++ "*" ++ get_size_of_base_type(T) ++ " div 8)/binary";
-        false ->
-            VarName
-    end;
+    VarName ++ ":(" ++ L ++ "*" ++ get_size_of_base_type(T) ++ " div 8)/binary";
 type_code(output, VarName, {array, {_, T}, L}) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
@@ -396,62 +379,96 @@ type_code(output, VarName, {_, float64}) ->
 type_code(_, VarName, {_, float64}) ->
     VarName ++ ":64/float-little";
 type_code(serialize, VarName, {_, string}) ->
-    "(length(" ++ VarName ++ ")+1):32/little,(list_to_binary(" ++ VarName ++
-        "))/binary,0:((4 - (length(" ++ VarName ++ ") rem 4)) * 8)";
+    "(length(" ++ VarName ++ ")+1):32/little, (list_to_binary(" ++ VarName ++"))/binary, 0";
 type_code(deserialize, VarName, {_, string}) ->
-    VarName ++ "_L:32/little, " ++ VarName ++ ":(" ++ VarName ++ "_L-1)/binary,_:(4 -(" ++ VarName ++
-        "_L-1) rem 4)/binary";
+    VarName ++ "_L:32/little, " ++ VarName ++ ":(" ++ VarName ++ "_L-1)/binary,_:1/binary";
 type_code(output, VarName, {_, string}) ->
     "binary_to_list(" ++ VarName ++ ")";
 type_code(serialize, VarName, {Pkg, USER_TYPE}) ->
-    "(" ++ Pkg ++ "_" ++ file_name_to_interface_name(USER_TYPE) ++ "_msg:serialize(" ++ VarName ++
-        "))/binary";
+    "(" ++ Pkg ++ "_" ++ file_name_to_interface_name(USER_TYPE) ++ "_msg:serialize(" ++ VarName ++"))/binary";
 type_code(deserialize, VarName, {Pkg, USER_TYPE}) ->
     VarName ++ ":(?" ++ Pkg ++ "_" ++ USER_TYPE ++ "_bitsize)";
 type_code(output, VarName, {_, USER_TYPE}) ->
     VarName.
 
-parse_code(VarName, {string, any}, Index) ->
-    "<<" ++ VarName ++ "_L:32/little, Str_" ++ integer_to_list(Index) ++ "/binary>> = Payload_" ++
-        integer_to_list(Index - 1) ++ ",\n\t" ++
-        "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(string, " ++
-        VarName ++ "_L, Str_" ++ integer_to_list(Index) ++ ")";
-parse_code(VarName, {string, L}, Index) ->
-    "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(string, L, Str_" ++
-        integer_to_list(Index) ++ ")";
 parse_code(VarName, {array, {Pkg, T}, any}, Index) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
-            "<<" ++ type_code(deserialize, VarName, {array, {Pkg, T}, any}) ++ ", Payload_" ++
-                integer_to_list(Index) ++ "/binary>> = Payload_" ++ integer_to_list(Index - 1);
+            "<< _:"++?CDR_ALIGNEMENT_CODE("Payload_", Index-1, get_size_of_base_type(uint32))++"," 
+            ++ type_code(deserialize, VarName, {array, {Pkg, T}, any}) ++ ", Payload_" ++
+            integer_to_list(Index) ++ "/binary>> = Payload_" ++ integer_to_list(Index - 1);
         false ->
-            "<<" ++ VarName ++ "_L:32/little, Array_" ++ integer_to_list(Index) ++
+            "<< _:"++?CDR_ALIGNEMENT_CODE("Payload_", Index-1, get_size_of_base_type(uint32))++"," ++ VarName ++ "_L:32/little, Array_" ++ integer_to_list(Index) ++
                 "/binary>> = Payload_" ++ integer_to_list(Index - 1) ++ ",\n\t" ++
                 "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(" ++
                 case T  of string -> "string, "; _ ->  Pkg ++ "_" ++ file_name_to_interface_name(T) ++ "_msg, " end
-                 ++ VarName ++ "_L, Array_" ++ integer_to_list(Index) ++ ")"
+                ++ VarName ++ "_L, "++" CDR_offset + bit_size(Payload_0) - bit_size(Array_" ++ integer_to_list(Index) ++ "), "
+                "Array_" ++ integer_to_list(Index) ++ ")"
     end;
 parse_code(VarName, {array, {Pkg, T}, L}, Index) ->
     case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
         true ->
-            "<<" ++ type_code(deserialize, VarName, {array, {Pkg, T}, L}) ++ ", Payload_" ++
-                integer_to_list(Index) ++ "/binary>> = Payload_" ++ integer_to_list(Index - 1);
+            "<< _:"++?CDR_ALIGNEMENT_CODE("Payload_", Index-1, get_size_of_base_type(T))++"," 
+            ++ type_code(deserialize, VarName, {array, {Pkg, T}, L}) ++ ", Payload_" ++
+            integer_to_list(Index) ++ "/binary>> = Payload_" ++ integer_to_list(Index - 1);
         false ->
             "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = parse_n_times(" ++
             case T  of string -> "string, "; _ ->  Pkg ++ "_" ++ file_name_to_interface_name(T) ++ "_msg, " end
-            ++ L ++ ", Payload_" ++ integer_to_list(Index - 1) ++ ")"
+            ++ L ++
+            ", CDR_offset" ++ case Index > 1 of 
+                        true -> " + bit_size(Payload_0) - bit_size(Payload_" ++ integer_to_list(Index) ++ ")";
+                        false -> "" end ++
+            ", Payload_" ++ integer_to_list(Index - 1) ++ ")"
     end;
 parse_code(VarName, {Pkg, T}, Index) ->
     case lists:member(T, ?ROS2_PRIMITIVES) of
         true ->
-            "<< " ++ type_code(deserialize, VarName, {Pkg, T}) ++ ",_:" ++
-                alignement_for_type({Pkg, T}) ++ ",Payload_" ++ integer_to_list(Index) ++
-                "/binary>> =  Payload_" ++ integer_to_list(Index - 1);
+            "<< _:"++?CDR_ALIGNEMENT_CODE("Payload_", Index-1, get_size_of_base_type(T))++"," 
+            ++ type_code(deserialize, VarName, {Pkg, T}) ++ 
+            ",Payload_" ++ integer_to_list(Index) ++"/binary>> =  Payload_" ++ integer_to_list(Index - 1);
         false ->
             "{" ++ VarName ++ ", Payload_" ++ integer_to_list(Index) ++ "} = " ++ Pkg ++ "_" ++
-                file_name_to_interface_name(T) ++ "_msg:parse(Payload_" ++
-                integer_to_list(Index - 1) ++ ")"
+                file_name_to_interface_name(T) ++ "_msg:parse( CDR_offset " 
+                ++ case Index > 1 of 
+                    true -> " + bit_size(Payload_0) - bit_size(Payload_" ++ integer_to_list(Index-1) ++ ")";
+                    false -> "" end ++
+                ", Payload_" ++integer_to_list(Index - 1) ++ ")"
     end.
+
+serialization_code(VarName, {array, {Pkg, T}, any}, Index) ->
+    case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
+        true ->
+            "Array_" ++integer_to_list(Index)++ " = "
+            "<< Payload_" ++ integer_to_list(Index - 1)++"/binary, 0:"++?CDR_ALIGNEMENT_CODE("Payload_"++integer_to_list(Index-1), get_size_of_base_type(T))++", "
+            "(length("++VarName++")):32/little>>,\n\t" 
+            "Payload_" ++integer_to_list(Index)++ " = << Array_" ++integer_to_list(Index)++"/binary, 0:"?CDR_ALIGNEMENT_CODE("Payload_"++integer_to_list(Index-1), get_size_of_base_type(T))++", "
+            ++ type_code(serialize, VarName, {array, {Pkg, T}, any}) ++ ">>";
+        false ->
+            "Payload_" ++integer_to_list(Index)++ " = " ++" serialize_array(" ++
+            case T of string -> "string, "; _ ->  Pkg ++ "_" ++ file_name_to_interface_name(T) ++ "_msg, " end ++ "\n\t\t"
+            ++ "<< Payload_" ++ integer_to_list(Index - 1)++"/binary, 0:"?CDR_ALIGNEMENT_CODE("Payload_"++integer_to_list(Index-1), get_size_of_base_type(uint32))++", "
+            "(length("++VarName++")):32/little>>,\n\t\t" ++ VarName ++ ")"
+    end;  
+serialization_code(VarName, {array, {Pkg, T}, L}, Index) ->
+    case lists:member(T, ?ROS2_STATIC_PRIMITIVES) of
+        true ->
+            "Payload_" ++integer_to_list(Index)++ " = << Payload_" ++ integer_to_list(Index-1)++"/binary, 0:"?CDR_ALIGNEMENT_CODE("Payload_"++integer_to_list(Index-1), get_size_of_base_type(T))++", "
+            ++ type_code(serialize, VarName, {array, {Pkg, T}, L}) ++ ">>";
+        false ->             
+            "Payload_" ++integer_to_list(Index)++ " = serialize_array(" ++
+            case T of string -> "string, "; _ ->  Pkg ++ "_" ++ file_name_to_interface_name(T) ++ "_msg, " end ++
+            "Payload_" ++integer_to_list(Index-1)++"/binary, " ++ VarName ++ ")"
+    end;
+serialization_code(VarName, {Pkg, T}, Index) ->
+    case lists:member(T, ?ROS2_PRIMITIVES) of
+        true ->
+            "Payload_" ++ integer_to_list(Index) ++" = << Payload_" ++ integer_to_list(Index-1) ++"/binary, 0:"?CDR_ALIGNEMENT_CODE("Payload_"++integer_to_list(Index-1), get_size_of_base_type(T))++"," 
+            ++ type_code(serialize, VarName, {Pkg, T}) ++ ">>";
+        false ->
+            "Payload_" ++ integer_to_list(Index) ++ " = " ++ Pkg ++ "_" ++
+                file_name_to_interface_name(T) ++ "_msg:serialize(Payload_" ++ integer_to_list(Index-1) ++ ", "++VarName++")"
+    end.
+
 
 items_contain_usertyped_arrays(Items) ->
     lists:any(

@@ -50,7 +50,7 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
         "-module(" ++ PkgName ++ "_" ++ InterfaceName ++
             "_msg).\n"
             "\n"
-            "-export([get_type/0, serialize/1, parse/1]).\n"
+            "-export([get_type/0, serialize/1, serialize/2, parse/1, parse/2]).\n"
             "\n"
             "% self include\n"
             "-include(\"" ++ PkgName ++ "_" ++ InterfaceName ++
@@ -58,18 +58,25 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
             "\n"
             "get_type() ->\n"
             "        \"" ++ PkgName ++ "::" ++ Tag ++ "::dds_::" ++ ActionName ++ Name ++ "_" ++
-            "\".\n"
+            "\".\n\n"
             "\n"
-            "serialize(#" ++
+            "serialize(Payload_0,#" ++
             PkgName ++ "_" ++ InterfaceName ++ "{" ++ Input ++
             "}) ->\n"
-            "\t<<" ++ Serializer ++
-            ">>.\n"
+            "\t" ++ 
+            case Serializer of
+                [] ->
+                    "";
+                Code ->
+                    Code ++ ","
+            end ++
+            "\n\tPayload_" ++ integer_to_list(length(Items))++".\n"
+            "serialize(MSG) ->\n\tserialize(<<>>,MSG).\n\n"
             "\n" ++
             case rosie_utils:items_contain_usertyped_arrays(Items) of
                 true ->
                     %paste extra code
-                    ?PARSE_N_TIMES_CODE;
+                    ?SERIALIZE_ARRAY_CODE?PARSE_N_TIMES_CODE;
                 false ->
                     ""
             end ++
@@ -82,7 +89,8 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
             end ++
             "\n"
             "\n"
-            "parse(Payload_0) ->\n"
+            "parse(Payload) -> \n\tparse(0,Payload).\n"
+            "parse(CDR_offset,Payload_0) ->\n"
             "        " ++
             case Deserializer of
                 [] ->

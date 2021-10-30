@@ -1,1 +1,1 @@
-float32[] numbers
+float32[4] numbers
