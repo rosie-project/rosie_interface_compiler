@@ -57,7 +57,7 @@ parse_n_times(_, 0, _, Payload, List) ->
 % string special case
 parse_n_times(string, Times, CDR_offset, Payload, List) -> 
         << _:((32 - (CDR_offset rem 32)) rem 32), L:32/little, STR:(L-1)/binary,0:8,REST/binary>> = Payload,
-        parse_n_times(string, Times-1, CDR_offset, REST, [binary:bin_to_list(STR)|List]);
+        parse_n_times(string, Times-1, CDR_offset + (bit_size(Payload) - bit_size(REST)), REST, [binary:bin_to_list(STR)|List]);
 parse_n_times(Module, Times, CDR_offset, Payload, List) -> 
         {Obj, REST} = Module:parse(CDR_offset, Payload),
         parse_n_times(Module, Times-1, CDR_offset + (bit_size(Payload) - bit_size(REST)), REST, [Obj|List]).
