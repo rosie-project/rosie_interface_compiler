@@ -32,7 +32,7 @@ string<=[0-9]+ : {token, {type, string}}. % bound string is treated as an infini
 false : {token,{value, "false"}}.
 true : {token,{value, "true"}}.
 --- : {token, {separator}}.
-[a-z_]+ : {token, {name, TokenChars}}.
+[a-z][a-zA-Z0-9_]*+ : {token, {name, TokenChars}}.
 #.* : skip_token. % Comments
 [\s\t\n\r]+ : skip_token.
 [.]+ : {error, syntax}.
