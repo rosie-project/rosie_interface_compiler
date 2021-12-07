@@ -22,7 +22,7 @@ float32 : {token, {type, float32}}.
 float64 : {token, {type, float64}}.
 string : {token, {type, string}}.
 wstring : {token, {type, string}}.
-[A-Z_]+ : {token, {macro, TokenChars}}.
+[A-Z_]+[A-Z_0-9]* : {token, {macro, TokenChars}}.
 string<=[0-9]+ : {token, {type, string}}. % bound string is treated as an infinite one for simplicity
 [A-Z][A-Za-z0-9]* : {token, {type, TokenChars}}. % User defined type
 [a-z_]+/[A-Z][A-Za-z0-9]* : {token, {type, split_pkg_and_type(TokenChars)}}. % User defined type in an external pkg
