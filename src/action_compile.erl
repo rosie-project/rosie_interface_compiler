@@ -13,7 +13,7 @@ gen_interface(PkgName, Filename, Scanner, Parser) ->
     % checking the work of the scanner
     case Scanner:string(binary_to_list(Bin)) of
         {ok, Tokens, _} ->
-            %io:format("~p\n",[Tokens]),
+            io:format("~p\n",[Tokens]),
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
                 % print_parsed_info(Res),

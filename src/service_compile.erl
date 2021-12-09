@@ -30,7 +30,7 @@ gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
                     io:format("Service Parser failed: ~p\n On tokens : ~p\n", [Else, Tokens])
             end;
         ErrorInfo ->
-            io:format("Service Scanner failed: ~p\n", [ErrorInfo])
+            io:format("Service Scanner failed on file ~p:\n ~p\n", [Filename,ErrorInfo])
     end.
 
 generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Reply}) ->
