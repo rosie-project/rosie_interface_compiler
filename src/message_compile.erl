@@ -12,7 +12,7 @@ file(PkgName, Filename) ->
 % for messages that compose a ros2 action
 file(PkgName, ActionName, Filename) ->
     {InterfaceName, Code, Header} =
-        gen_interface(PkgName, "action", ActionName ++ "_", Filename, scanner, message_parser),
+        gen_interface(PkgName, "action", ActionName, Filename, scanner, message_parser),
     {ok, InterfaceName, Code, Header}.
 
 gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
@@ -37,8 +37,7 @@ gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
 
 generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
     Name = filename:basename(Filename, ".msg"),
-    InterfaceName =
-        string:lowercase(ActionName) ++ rosie_utils:file_name_to_interface_name(Name),
+    InterfaceName = rosie_utils:file_name_to_interface_name(ActionName++Name),
     {Input, Output, Serializer, Deserializer} = rosie_utils:produce_in_out(PkgName, Items),
     IncludedHeaders = rosie_utils:produce_includes(PkgName, Items),
     HEADER_DEF = string:to_upper(PkgName ++ "_" ++ InterfaceName ++ "_msg" ++ "_hrl"),
