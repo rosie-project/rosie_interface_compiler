@@ -85,7 +85,7 @@ gen_action_erl(PkgName, InterfaceName) ->
     "-module(" ++ PkgName ++ "_" ++ InterfaceName ++ "_action).\n" ++
         "-include_lib(\"" ++ PkgName ++ "/src/_rosie/" ++ PkgName ++ "_" ++ InterfaceName ++
         "_action.hrl\").\n" ++
-        "-export([goal/0,get_goal_id/1, get_goal_srv_module/0, get_result_srv_module/0, get_feedback_msg_module/0,get_action_name/0,get_responce_code/1,identify_msg/1]).\n\n" ++
+        "-export([goal/0, get_goal_id/1, get_goal_srv_module/0, get_result_srv_module/0, get_feedback_msg_module/0, get_action_name/0, get_responce_code/1, accept_goal_reply/0, reject_goal_reply/0, identify_msg/1]).\n\n" ++
         "goal() -> #" ++ PkgName ++ "_" ++ InterfaceName ++
         "_send_goal_rq{goal_id = #unique_identifier_msgs_u_u_i_d{uuid = binary:bin_to_list(<<(crypto:strong_rand_bytes(16))/binary>>) } }.\n" ++
         "get_goal_id(#" ++ PkgName ++ "_" ++ InterfaceName ++
@@ -105,6 +105,10 @@ gen_action_erl(PkgName, InterfaceName) ->
         "\".\n"
         "get_responce_code(#" ++ PkgName ++ "_" ++ InterfaceName ++
         "_send_goal_rp{responce_code=C}) -> C.\n" ++
+        "accept_goal_reply() -> #" ++ PkgName ++ "_" ++ InterfaceName ++
+        "_send_goal_rp{responce_code=1}.\n" ++
+        "reject_goal_reply() -> #" ++ PkgName ++ "_" ++ InterfaceName ++
+        "_send_goal_rp{responce_code=0}.\n" ++
         "identify_msg(#" ++ PkgName ++ "_" ++ InterfaceName ++ "_send_goal_rq{}) -> send_goal_rq;\n" ++
         "identify_msg(#" ++ PkgName ++ "_" ++ InterfaceName ++ "_send_goal_rp{}) -> send_goal_rp;\n" ++
         "identify_msg(#" ++ PkgName ++ "_" ++ InterfaceName ++
