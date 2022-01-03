@@ -56,7 +56,13 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
             "_msg.hrl\").\n"
             "\n"
             "get_type() ->\n"
-            "        \"" ++ PkgName ++ "::" ++ Tag ++ "::dds_::" ++ ActionName ++ Name ++ "_" ++
+
+            "        \"" ++ PkgName ++ "::" ++ Tag ++ "::dds_::" ++
+            case ActionName of
+                "" -> "";
+                _ -> ActionName++"_"
+            end 
+            ++ Name ++ "_" ++
             "\".\n\n"
             "\n"
             "serialize(Payload_0,#" ++
