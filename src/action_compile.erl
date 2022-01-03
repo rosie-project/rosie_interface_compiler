@@ -89,6 +89,8 @@ gen_action_erl(PkgName, InterfaceName) ->
         "goal() -> #" ++ PkgName ++ "_" ++ InterfaceName ++
         "_send_goal_rq{goal_id = #unique_identifier_msgs_u_u_i_d{uuid = binary:bin_to_list(<<(crypto:strong_rand_bytes(16))/binary>>) } }.\n" ++
         "get_goal_id(#" ++ PkgName ++ "_" ++ InterfaceName ++
+        "_feedback_message{goal_id = UUID }) -> UUID;\n" ++
+        "get_goal_id(#" ++ PkgName ++ "_" ++ InterfaceName ++
         "_send_goal_rq{goal_id = UUID }) -> UUID;\n" ++
         "get_goal_id(#" ++ PkgName ++ "_" ++ InterfaceName ++
         "_get_result_rq{goal_id = UUID }) -> UUID.\n" ++
