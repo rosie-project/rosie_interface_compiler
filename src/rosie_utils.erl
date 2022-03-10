@@ -66,7 +66,7 @@ produce_includes(PkgName, Items) ->
     ExtPkg =
         lists:filter(
             fun
-                ({Pkg, Type}) ->
+                ({_Pkg, _Type}) ->
                     true;
                 (_) ->
                     false
@@ -100,35 +100,6 @@ produce_defines(Constants) ->
         ),
         "\n"
     ).
-
-alignement_for_type({array, _, any}) ->
-    "0";
-alignement_for_type({array, {Pkg, Type}, L}) ->
-    case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
-        true ->
-            TypeSize = list_to_integer(get_size_of_base_type(Type)) * list_to_integer(L),
-            case TypeSize < 32 of
-                true ->
-                    integer_to_list(32 - TypeSize);
-                false ->
-                    "0"
-            end;
-        false ->
-            "0"
-    end;
-alignement_for_type({Pkg, Type}) ->
-    case lists:member(Type, ?ROS2_STATIC_PRIMITIVES) of
-        true ->
-            TypeSize = list_to_integer(get_size_of_base_type(Type)),
-            case TypeSize < 32 of
-                true ->
-                    integer_to_list(32 - TypeSize);
-                false ->
-                    "0"
-            end;
-        false ->
-            "0"
-    end.
 
 produce_in_out(PkgName, DataList) ->
     VarNames =
@@ -203,27 +174,8 @@ produce_in_out(PkgName, DataList) ->
         ),
     {InputCode, OutputCode, SerializerCode, DeserializerCode}.
 
-get_bitsizes(Items) ->
-    VarTypes =
-        lists:map(
-            fun({TypeToken, _}) ->
-                case TypeToken of
-                    {type, T} ->
-                        T;
-                    {{type, T}, {array, L}} ->
-                        {T, L}
-                end
-            end,
-            Items
-        ),
-    get_bitsizes(VarTypes, []).
 
-get_bitsizes([], Sizes) ->
-    Sizes;
-get_bitsizes([I | TL], S) ->
-    get_bitsizes(TL, [get_size_of_base_type(I) | S]).
-
-get_size_of_base_type({Type, any}) ->
+get_size_of_base_type({_Type, any}) ->
     "0";
 get_size_of_base_type({Type, Array_L}) ->
     get_size_of_base_type(Type) ++ "*" ++ Array_L;
@@ -254,7 +206,7 @@ get_size_of_base_type(float64) ->
 get_size_of_base_type(string) ->
     get_size_of_base_type(uint32).
 
-record_field_from_item(PkgName, {TypeToken, {{name, N}, {value, DEFAULT}}}) ->
+record_field_from_item(_PkgName, {_TypeToken, {{name, N}, {value, DEFAULT}}}) ->
     N ++ "=" ++ DEFAULT;
 record_field_from_item(PkgName, {TypeToken, {name, N}}) ->
     case TypeToken of
@@ -269,7 +221,7 @@ produce_record_def(PkgName, Items) ->
         lists:map(fun(I) -> record_field_from_item(PkgName, I) end, Items), ","
     ).
 
-get_defalt_val_for(_, {array, Type, any}) ->
+get_defalt_val_for(_, {array, _Type, any}) ->
     "[]";
 get_defalt_val_for(LocalPkg, {array, Type, Array_L}) ->
     "[ " ++ get_defalt_val_for(LocalPkg, Type) ++ " || _ <- lists:seq(1," ++ Array_L ++ ")]";
@@ -388,7 +340,7 @@ type_code(serialize, VarName, {Pkg, USER_TYPE}) ->
     "(" ++ Pkg ++ "_" ++ file_name_to_interface_name(USER_TYPE) ++ "_msg:serialize(" ++ VarName ++"))/binary";
 type_code(deserialize, VarName, {Pkg, USER_TYPE}) ->
     VarName ++ ":(?" ++ Pkg ++ "_" ++ USER_TYPE ++ "_bitsize)";
-type_code(output, VarName, {_, USER_TYPE}) ->
+type_code(output, VarName, {_, _USER_TYPE}) ->
     VarName.
 
 parse_code(VarName, {array, {Pkg, T}, any}, Index) ->

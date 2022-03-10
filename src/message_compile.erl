@@ -22,7 +22,7 @@ gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
     case Scanner:string(binary_to_list(Bin)) of
         {ok, [], _} ->
             generate_interface(PkgName, Tag, ActionName, Filename, {[], []});
-        {ok, Tokens, EndLine} ->
+        {ok, Tokens, _EndLine} ->
             %io:format("~p\n",[Tokens]),
             % checking the work of the Yecc
             case Parser:parse(Tokens) of

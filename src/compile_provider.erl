@@ -59,21 +59,21 @@ compile_actions(Opts, PkgName, AppDir) ->
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "action"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.action\$"),
-    CompileFun = fun(Source, Opts1) -> compile_action(PkgName, Source, OutDir) end,
+    CompileFun = fun(Source, _Opts1) -> compile_action(PkgName, Source, OutDir) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
 compile_services(Opts, PkgName, AppDir) ->
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "srv"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.srv\$"),
-    CompileFun = fun(Source, Opts1) -> compile(PkgName, Source, OutDir, service_compile) end,
+    CompileFun = fun(Source, _Opts1) -> compile(PkgName, Source, OutDir, service_compile) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
 compile_messages(Opts, PkgName, AppDir) ->
     OutDir = filename:join([AppDir, "src", ?GEN_CODE_DIR]),
     SourceDir = filename:join(AppDir, "msg"),
     FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.msg\$"),
-    CompileFun = fun(Source, Opts1) -> compile(PkgName, Source, OutDir, message_compile) end,
+    CompileFun = fun(Source, _Opts1) -> compile(PkgName, Source, OutDir, message_compile) end,
     rebar_base_compiler:run(Opts, [], FoundFiles, CompileFun).
 
 compile_action(PkgName, Source, OutDir) ->
