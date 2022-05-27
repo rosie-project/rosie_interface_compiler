@@ -85,14 +85,13 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
                 false ->
                     ""
             end ++
-            case rosie_utils:items_contain_std_arrays(Items) of
+            case rosie_utils:items_need_dinamic_bin_split(Items) of
                 true ->
                     %paste extra code
                     ?BIN_TO_BIN_LIST_CODE;
                 false ->
                     ""
             end ++
-            "\n"
             "\n"
             "parse(Payload) -> \n\tparse(0,Payload).\n"
             "parse(_CDR_offset,"?PAYLOAD"0) ->\n"

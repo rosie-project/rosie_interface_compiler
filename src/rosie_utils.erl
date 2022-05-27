@@ -13,7 +13,7 @@
     serialization_code/3,
     parse_code/3,
     items_contain_usertyped_arrays/1,
-    items_contain_std_arrays/1
+    items_need_dinamic_bin_split/1
 ]).
 
 
@@ -432,10 +432,10 @@ items_contain_usertyped_arrays(Items) ->
         Items
     ).
 
-items_contain_std_arrays(Items) ->
+items_need_dinamic_bin_split(Items) ->
     lists:any(
         fun
-            ({{{type, T}, {array, _}}, _}) ->
+            ({{{type, T}, {array, any}}, _}) ->
                 lists:member(T, ?ROS2_STATIC_PRIMITIVES);
             (_) ->
                 false

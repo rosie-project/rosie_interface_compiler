@@ -2,7 +2,7 @@
 
 -export([file/2]).
 
--include_lib("include/compiler_macros.hrl").
+% -include_lib("include/compiler_macros.hrl").
 
 file(PkgName, Filename) ->
     {ok, gen_interface(PkgName, Filename, action_scanner, action_parser)}.

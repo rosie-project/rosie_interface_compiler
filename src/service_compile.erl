@@ -91,7 +91,7 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Repl
                 false ->
                     ""
             end ++
-            case rosie_utils:items_contain_std_arrays(Request ++ Reply) of
+            case rosie_utils:items_need_dinamic_bin_split(Request ++ Reply) of
                 true ->
                     %paste extra code
                     ?BIN_TO_BIN_LIST_CODE;
