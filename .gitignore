@@ -21,3 +21,10 @@ _build
 *.iml
 rebar3.crashdump
 *~
+
+action_scanner.erl
+scanner.erl
+action_parser.erl
+service_parser.erl
+message_parser.erl
+

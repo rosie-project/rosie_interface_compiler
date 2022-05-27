@@ -103,17 +103,17 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Repl
             "serialize_request(Client_ID, RequestNumber, #" ++ PkgName ++ "_" ++ InterfaceName ++
             "_rq{" ++ RequestInput ++
             "}) ->\n\t"
-            ++ "Payload_0 = <<>>,\n\t" ++
+            ++ ?PAYLOAD"0 = <<>>,\n\t" ++
             case SerializerRequest of
                 [] ->
                     "";
                 Code ->
                     Code ++ ",\n"
             end ++
-            "\t<<Client_ID:8/binary, RequestNumber:64/little, Payload_"++integer_to_list(length(Request))++"/binary>>.\n"
+            "\t<<Client_ID:8/binary, RequestNumber:64/little, "?PAYLOAD++integer_to_list(length(Request))++"/binary>>.\n"
             "\n"
-            "parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->\n"
-            "\tCDR_offset = 0,\n"
+            "parse_reply(<<Client_ID:8/binary, RequestNumber:64/little, "?PAYLOAD"0/binary>>) ->\n"
+            "\t_CDR_offset = 0,\n"
             "        " ++
             case DeserializerReply of
                 [] ->
@@ -130,17 +130,17 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Repl
             "serialize_reply(Client_ID, RequestNumber, #" ++ PkgName ++ "_" ++ InterfaceName ++
             "_rp{" ++ ReplyInput ++
             "}) ->\n\t" ++
-            "Payload_0 = <<>>,\n\t" ++
+            ""?PAYLOAD"0 = <<>>,\n\t" ++
             case SerializerReply of
                 [] ->
                     "";
                 Code ->
                     Code ++ ",\n"
             end ++
-            "        <<Client_ID:8/binary, RequestNumber:64/little, Payload_"++integer_to_list(length(Reply))++"/binary>>.\n"
+            "        <<Client_ID:8/binary, RequestNumber:64/little, "?PAYLOAD++integer_to_list(length(Reply))++"/binary>>.\n"
             "\n"
-            "parse_request(<<Client_ID:8/binary, RequestNumber:64/little, Payload_0/binary>>) ->\n"
-            "\tCDR_offset = 0,\n"
+            "parse_request(<<Client_ID:8/binary, RequestNumber:64/little, "?PAYLOAD"0/binary>>) ->\n"
+            "\t_CDR_offset = 0,\n"
             "        " ++
             case DeserializerRequest of
                 [] ->

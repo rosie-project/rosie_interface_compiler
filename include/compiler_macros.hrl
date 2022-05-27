@@ -16,19 +16,22 @@
          uint32,
          int64,
          uint64]).
+
+-define(PAYLOAD, "_Payload_").
+
 -define(ROS2_PRIMITIVES, [string | ?ROS2_STATIC_PRIMITIVES]).
 
 -define(CDR_ALIGNEMENT_CODE(Bin,N,NumBits), 
         case N >= 1 of 
-                true ->"(("++NumBits++" - (( CDR_offset + bit_size(Payload_0) - bit_size("++Bin++integer_to_list(N)++")) rem "++NumBits++")) rem "++NumBits++")";
-                false ->"(("++NumBits++" - ( CDR_offset rem "++NumBits++")) rem "++NumBits++")"
+                true ->"(("++NumBits++" - (( _CDR_offset + bit_size("?PAYLOAD"0) - bit_size("++Bin++integer_to_list(N)++")) rem "++NumBits++")) rem "++NumBits++")";
+                false ->"(("++NumBits++" - ( _CDR_offset rem "++NumBits++")) rem "++NumBits++")"
         end).
 
 -define(CDR_ALIGNEMENT_CODE(Bin, NumBits), 
         "(("++NumBits++" - (  bit_size("++Bin++")  rem "++NumBits++")) rem "++NumBits++")").
 
 -define(CDR_ALIGNEMENT_CODE(NumBits), 
-        "(("++NumBits++" - ( CDR_offset  rem "++NumBits++")) rem "++NumBits++")").
+        "(("++NumBits++" - ( _CDR_offset  rem "++NumBits++")) rem "++NumBits++")").
 
 -define(BIN_TO_BIN_LIST_CODE,
         "% When there is an array of elements of base types is usefull to break the binary in a list of sub binaries
@@ -55,14 +58,14 @@ serialize_array(Module, Payload, [Obj|List]) ->
 parse_n_times(_, 0, _, Payload, List) -> 
         {lists:reverse(List), Payload};
 % string special case
-parse_n_times(string, Times, CDR_offset, Payload, List) -> 
-        << _:((32 - (CDR_offset rem 32)) rem 32), L:32/little, STR:(L-1)/binary,0:8,REST/binary>> = Payload,
-        parse_n_times(string, Times-1, CDR_offset + (bit_size(Payload) - bit_size(REST)), REST, [binary:bin_to_list(STR)|List]);
-parse_n_times(Module, Times, CDR_offset, Payload, List) -> 
-        {Obj, REST} = Module:parse(CDR_offset, Payload),
-        parse_n_times(Module, Times-1, CDR_offset + (bit_size(Payload) - bit_size(REST)), REST, [Obj|List]).
-parse_n_times(Module, Times, CDR_offset, Payload) -> 
-        parse_n_times(Module, Times, CDR_offset, Payload, []).
+parse_n_times(string, Times, _CDR_offset, Payload, List) -> 
+        << _:((32 - (_CDR_offset rem 32)) rem 32), L:32/little, STR:(L-1)/binary,0:8,REST/binary>> = Payload,
+        parse_n_times(string, Times-1, _CDR_offset + (bit_size(Payload) - bit_size(REST)), REST, [binary:bin_to_list(STR)|List]);
+parse_n_times(Module, Times, _CDR_offset, Payload, List) -> 
+        {Obj, REST} = Module:parse(_CDR_offset, Payload),
+        parse_n_times(Module, Times-1, _CDR_offset + (bit_size(Payload) - bit_size(REST)), REST, [Obj|List]).
+parse_n_times(Module, Times, _CDR_offset, Payload) -> 
+        parse_n_times(Module, Times, _CDR_offset, Payload, []).
 ").
 
 -endif.

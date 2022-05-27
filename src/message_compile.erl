@@ -65,7 +65,7 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
             ++ Name ++ "_" ++
             "\".\n\n"
             "\n"
-            "serialize(Payload_0,#" ++
+            "serialize("?PAYLOAD"0,#" ++
             PkgName ++ "_" ++ InterfaceName ++ "{" ++ Input ++
             "}) ->\n"
             "\t" ++ 
@@ -75,7 +75,7 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
                 Code ->
                     Code ++ ","
             end ++
-            "\n\tPayload_" ++ integer_to_list(length(Items))++".\n"
+            "\n\t"?PAYLOAD ++ integer_to_list(length(Items))++".\n"
             "serialize(MSG) ->\n\tserialize(<<>>,MSG).\n\n"
             "\n" ++
             case rosie_utils:items_contain_usertyped_arrays(Items) of
@@ -95,7 +95,7 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
             "\n"
             "\n"
             "parse(Payload) -> \n\tparse(0,Payload).\n"
-            "parse(CDR_offset,Payload_0) ->\n"
+            "parse(_CDR_offset,"?PAYLOAD"0) ->\n"
             "        " ++
             case Deserializer of
                 [] ->
@@ -106,7 +106,7 @@ generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->
             "\n"
             "        ParseResult = #" ++ PkgName ++ "_" ++ InterfaceName ++ "{" ++ Output ++
             "},\n"
-            "        {ParseResult,Payload_" ++ integer_to_list(length(Items)) ++
+            "        {ParseResult,"?PAYLOAD ++ integer_to_list(length(Items)) ++
             "}.\n"
             "\n",
         % .hrl NOTE: _bitsize is USELESS, we can't know at compile time the length of a user defined datatype, it could contain dinamic arrays
