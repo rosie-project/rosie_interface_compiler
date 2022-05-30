@@ -29,10 +29,10 @@ gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
                 {ok, Res} ->
                     generate_interface(PkgName, Tag, ActionName, Filename, Res);
                 Else ->
-                    io:format("Message Parser failed: ~p\n On tokens : ~p\n", [Else, Tokens])
+                    io:format(?ROSIE"Message Parser failed: ~p\n On tokens : ~p\n", [Else, Tokens])
             end;
         ErrorInfo ->
-            io:format("Message Scanner failed: ~p\n On File ~p\n", [ErrorInfo, Filename])
+            io:format(?ROSIE"Message Scanner failed: ~p\n On File ~p\n", [ErrorInfo, Filename])
     end.
 
 generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Items}) ->

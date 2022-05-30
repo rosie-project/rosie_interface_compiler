@@ -17,6 +17,8 @@
          int64,
          uint64]).
 
+-define(ROSIE, "ROSiE: ").
+
 -define(PAYLOAD, "_Payload_").
 
 -define(ROS2_PRIMITIVES, [string | ?ROS2_STATIC_PRIMITIVES]).

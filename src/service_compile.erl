@@ -27,10 +27,10 @@ gen_interface(PkgName, Tag, ActionName, Filename, Scanner, Parser) ->
                 {ok, Res} ->
                     generate_interface(PkgName, Tag, ActionName, Filename, Res);
                 Else ->
-                    io:format("Service Parser failed: ~p\n On tokens : ~p\n", [Else, Tokens])
+                    io:format(?ROSIE"Service Parser failed: ~p\n On tokens : ~p\n", [Else, Tokens])
             end;
         ErrorInfo ->
-            io:format("Service Scanner failed on file ~p:\n ~p\n", [Filename,ErrorInfo])
+            io:format(?ROSIE"Service Scanner failed on file ~p:\n ~p\n", [Filename,ErrorInfo])
     end.
 
 generate_interface(PkgName, Tag, ActionName, Filename, {Constants, Request, Reply}) ->

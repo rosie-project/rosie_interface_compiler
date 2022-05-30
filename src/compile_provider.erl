@@ -135,7 +135,7 @@ compile(PkgName, Source, OutDir, CompilerModule) ->
 write_file(OutDir, Filename, Text) ->
     OutFile = filename:join([OutDir, Filename]),
     filelib:ensure_dir(OutFile),
-    rebar_api:info("ROSIE: writing ~s", [filename:basename(OutFile)]),
+    rebar_api:info(?ROSIE"writing ~s", [filename:basename(OutFile)]),
     file:write_file(OutFile, Text).
 
 -ifdef(TEST).

@@ -2,7 +2,7 @@
 
 -export([file/2]).
 
-% -include_lib("include/compiler_macros.hrl").
+-include_lib("include/compiler_macros.hrl").
 
 file(PkgName, Filename) ->
     {ok, gen_interface(PkgName, Filename, action_scanner, action_parser)}.
@@ -13,17 +13,17 @@ gen_interface(PkgName, Filename, Scanner, Parser) ->
     % checking the work of the scanner
     case Scanner:string(binary_to_list(Bin)) of
         {ok, Tokens, _} ->
-            io:format("~p\n",[Tokens]),
+            % io:format("~p\n",[Tokens]),
             % checking the work of the Yecc
             case Parser:parse(Tokens) of
                 % print_parsed_info(Res),
                 {ok, Res} ->
                     generate_interface(PkgName, Filename, Res);
                 Else ->
-                    io:format("Action Parser failed: ~p\n", [Else])
+                    rebar_api:error(?ROSIE"Action Parser failed: ~p\n", [Else])
             end;
         ErrorInfo ->
-            io:format("Action Scanner failed: ~p\n", [ErrorInfo])
+            io:format(?ROSIE"Action Scanner failed: ~p\n", [ErrorInfo])
     end.
 
 generate_interface(PkgName, Filename, {Goal_Items, Result_Items, Feedback_Items}) ->
