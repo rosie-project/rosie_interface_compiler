@@ -39,7 +39,7 @@ How it works
     │   ├── srv
     │   │   ├── MyService.srv
 
-- Then it compiles them in erlang modules and headers and puts them in a dedicated _rosie directory under src. A compilation of the previous tree produces te following tree.
+- Then it compiles them in erlang modules and headers and puts them in a dedicated _rosie directory under src. A compilation of the previous tree produces the following tree.
 
 ***
     ├── my_app
@@ -70,7 +70,7 @@ How it works
     │   ├── srv
     │   │   ├── MyService.srv
 
-- As you can notice, compilation of .action files has multiple steps because of its nature its decomposed in 2 services and 1 message compiled independently. Plus a general module is made to describe the action.
+- As you can notice, compilation of .action files has multiple steps because of its nature it's decomposed in 2 services and 1 message compiled independently. Plus, a general module is made to describe the action.
 
 - Compiled interfaces have long names due to the global scope of erlang modules. This prevents module shadowing, in case of interfaces with identical names used acros ROS packages.
 
@@ -81,4 +81,4 @@ Notes
 
 The plugin implements CDR serialization directly inside the modules. Therefor each produced module has no dependency. The app using it does not need to include any extra library.
 
-You can use official ROS messages inside yours just by including the wanted ROS package as your project dependency. See rosie_ros2_deps [LINK TO BE ADDED] which allows you to depend on official ROS resources.
+You can use official ROS messages inside yours just by including the wanted ROS package as your project dependency. See rosie_ros2_deps (https://github.com/rosie-project/rosie_ros2_deps) which allows you to depend on official ROS resources.
